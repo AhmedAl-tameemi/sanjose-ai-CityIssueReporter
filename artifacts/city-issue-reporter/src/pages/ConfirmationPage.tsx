@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Check, Clipboard, ImageIcon, MapPin, RotateCcw } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
-import { type Report } from '../types/report';
+import { isEvidenceObjectPath, type Report } from '../types/report';
 import { reportStorageKey } from './ReportPage';
 
 export default function ConfirmationPage() {
@@ -9,7 +9,27 @@ export default function ConfirmationPage() {
   const [report, setReport] = useState<Report | null>(() => {
     try {
       const saved = window.localStorage.getItem(reportStorageKey);
-      return saved ? JSON.parse(saved) as Report : null;
+      if (!saved) return null;
+      const parsed = JSON.parse(saved) as Report & {
+        evidence?: { name?: unknown; type?: unknown; size?: unknown; objectPath?: unknown };
+      };
+      const storedEvidence = parsed.evidence;
+      return {
+        ...parsed,
+        evidence:
+          storedEvidence &&
+          typeof storedEvidence.name === 'string' &&
+          typeof storedEvidence.type === 'string' &&
+          typeof storedEvidence.size === 'number' &&
+          isEvidenceObjectPath(storedEvidence.objectPath)
+            ? {
+                name: storedEvidence.name,
+                type: storedEvidence.type,
+                size: storedEvidence.size,
+                objectPath: storedEvidence.objectPath,
+              }
+            : undefined,
+      };
     } catch {
       return null;
     }
@@ -52,6 +72,10 @@ export default function ConfirmationPage() {
     setLocation('/');
   };
 
+  const evidenceUrl = report.evidence
+    ? `/api/storage${report.evidence.objectPath}`
+    : undefined;
+
   return (
     <div className="app-shell">
       <header className="site-header">
@@ -92,11 +116,11 @@ export default function ConfirmationPage() {
                     <span className="summary-value">{[report.name, report.email, report.phone].filter(Boolean).join(' · ')}</span>
                   </div>
                 )}
-                {report.evidence && (
+                {report.evidence && evidenceUrl && (
                   <div className="summary-item full">
                     <span className="summary-label">Image evidence</span>
                     <div className="confirmation-evidence">
-                      <img src={report.evidence.dataUrl} alt={`Submitted evidence: ${report.evidence.name}`} />
+                      <img src={evidenceUrl} alt={`Submitted evidence: ${report.evidence.name}`} />
                       <span><ImageIcon size={15} />{report.evidence.name}</span>
                     </div>
                   </div>

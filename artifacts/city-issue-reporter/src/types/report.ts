@@ -20,7 +20,8 @@ export type Frequency = (typeof frequencies)[number];
 export type EvidenceImage = {
   name: string;
   type: string;
-  dataUrl: string;
+  size: number;
+  objectPath: string;
 };
 
 export type Report = {
@@ -52,3 +53,7 @@ export const blankDraft: ReportDraft = {
   email: '',
   phone: '',
 };
+
+export function isEvidenceObjectPath(value: unknown): value is string {
+  return typeof value === 'string' && /^\/objects\/evidence\/[a-f0-9-]{36}$/i.test(value);
+}

@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: Storage
+    description: Private object storage for resident evidence.
 paths:
   /healthz:
     get:
@@ -24,6 +26,98 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /storage/evidence:
+    post:
+      operationId: uploadEvidence
+      tags: [Storage]
+      summary: Upload private photo evidence
+      description: Uploads one validated image to managed private object storage.
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+          image/jpeg:
+            schema:
+              type: string
+              format: binary
+          image/png:
+            schema:
+              type: string
+              format: binary
+          image/webp:
+            schema:
+              type: string
+              format: binary
+          image/gif:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "201":
+          description: Evidence stored in private object storage.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EvidenceUploadResponse"
+        "400":
+          description: The uploaded bytes are not a supported image.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "413":
+          description: The image exceeds the 3 MB limit.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "415":
+          description: The content type is not supported.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          description: The evidence could not be stored.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /storage/objects/{objectPath}:
+    get:
+      operationId: getEvidenceObject
+      tags: [Storage]
+      summary: Serve a private evidence object
+      parameters:
+        - name: objectPath
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Private evidence path without the /objects/ prefix.
+      responses:
+        "200":
+          description: Stored image evidence.
+          content:
+            image/*:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Evidence object not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "500":
+          description: The evidence could not be served.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +127,25 @@ components:
           type: string
       required:
         - status
+    EvidenceUploadResponse:
+      type: object
+      properties:
+        objectPath:
+          type: string
+          description: Private object path returned by the evidence service.
+        contentType:
+          type: string
+        size:
+          type: integer
+      required:
+        - objectPath
+        - contentType
+        - size
+    ErrorEnvelope:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
 

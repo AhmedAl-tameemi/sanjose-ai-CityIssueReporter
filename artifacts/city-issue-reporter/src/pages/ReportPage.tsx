@@ -19,6 +19,7 @@ import { Link, useLocation } from 'wouter';
 import {
   blankDraft,
   frequencies,
+  isEvidenceObjectPath,
   issueTypes,
   type IssueType,
   type ReportDraft,
@@ -42,7 +43,25 @@ const issueIcons: Record<IssueType, typeof CarFront> = {
 function readDraft(): ReportDraft {
   try {
     const saved = window.localStorage.getItem(draftStorageKey);
-    return saved ? { ...blankDraft, ...JSON.parse(saved) } : blankDraft;
+    if (!saved) return blankDraft;
+    const parsed = JSON.parse(saved) as Partial<ReportDraft> & {
+      evidence?: { name?: unknown; type?: unknown; size?: unknown; objectPath?: unknown };
+    };
+    const storedEvidence = parsed.evidence;
+    const evidence =
+      storedEvidence &&
+      typeof storedEvidence.name === 'string' &&
+      typeof storedEvidence.type === 'string' &&
+      typeof storedEvidence.size === 'number' &&
+      isEvidenceObjectPath(storedEvidence.objectPath)
+        ? {
+            name: storedEvidence.name,
+            type: storedEvidence.type,
+            size: storedEvidence.size,
+            objectPath: storedEvidence.objectPath,
+          }
+        : undefined;
+    return { ...blankDraft, ...parsed, evidence };
   } catch {
     return blankDraft;
   }
@@ -63,8 +82,16 @@ export default function ReportPage() {
   const [step, setStep] = useState(1);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [isSaved, setIsSaved] = useState(false);
+  const [isEvidenceUploading, setIsEvidenceUploading] = useState(false);
+  const [localEvidencePreviewUrl, setLocalEvidencePreviewUrl] = useState<string>();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const evidenceInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    return () => {
+      if (localEvidencePreviewUrl) URL.revokeObjectURL(localEvidencePreviewUrl);
+    };
+  }, [localEvidencePreviewUrl]);
 
   useEffect(() => {
     window.localStorage.setItem(draftStorageKey, JSON.stringify(draft));
@@ -103,12 +130,12 @@ export default function ReportPage() {
     if (validateStep(step)) setStep((current) => Math.min(3, current + 1));
   };
 
-  const handleEvidenceChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleEvidenceChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      setErrors((current) => ({ ...current, evidence: 'Choose an image file.' }));
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) {
+      setErrors((current) => ({ ...current, evidence: 'Choose a supported JPG, PNG, WebP, or GIF image.' }));
       event.target.value = '';
       return;
     }
@@ -119,27 +146,67 @@ export default function ReportPage() {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result !== 'string') {
-        setErrors((current) => ({ ...current, evidence: 'This image could not be added. Try another file.' }));
-        return;
+    if (localEvidencePreviewUrl) URL.revokeObjectURL(localEvidencePreviewUrl);
+    setLocalEvidencePreviewUrl(URL.createObjectURL(file));
+    update('evidence', undefined);
+    setIsEvidenceUploading(true);
+    setErrors((current) => ({ ...current, evidence: undefined }));
+
+    try {
+      const response = await fetch('/api/storage/evidence', {
+        method: 'POST',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      });
+      const result = (await response.json().catch(() => null)) as
+        | { objectPath?: unknown; contentType?: unknown; size?: unknown; error?: string }
+        | null;
+
+      if (!response.ok) {
+        throw new Error(result?.error || 'This image could not be uploaded. Try another file.');
       }
-      update('evidence', { name: file.name, type: file.type, dataUrl: reader.result });
-    };
-    reader.onerror = () => {
-      setErrors((current) => ({ ...current, evidence: 'This image could not be added. Try another file.' }));
-    };
-    reader.readAsDataURL(file);
+      if (
+        !result ||
+        !isEvidenceObjectPath(result.objectPath) ||
+        typeof result.contentType !== 'string' ||
+        typeof result.size !== 'number'
+      ) {
+        throw new Error('The upload response was incomplete. Try another file.');
+      }
+
+      update('evidence', {
+        name: file.name,
+        type: result.contentType,
+        size: result.size,
+        objectPath: result.objectPath,
+      });
+      setLocalEvidencePreviewUrl(undefined);
+    } catch (error) {
+      setErrors((current) => ({
+        ...current,
+        evidence: error instanceof Error ? error.message : 'This image could not be uploaded. Try another file.',
+      }));
+    } finally {
+      setIsEvidenceUploading(false);
+      event.target.value = '';
+    }
   };
 
   const removeEvidence = () => {
     update('evidence', undefined);
+    if (localEvidencePreviewUrl) {
+      URL.revokeObjectURL(localEvidencePreviewUrl);
+      setLocalEvidencePreviewUrl(undefined);
+    }
     if (evidenceInputRef.current) evidenceInputRef.current.value = '';
   };
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (isEvidenceUploading) {
+      setErrors((current) => ({ ...current, evidence: 'Wait for the photo to finish uploading.' }));
+      return;
+    }
     if (!validateStep(2)) {
       setStep(2);
       return;
@@ -162,9 +229,16 @@ export default function ReportPage() {
   };
 
   const saveForLater = () => {
+    if (isEvidenceUploading) {
+      setErrors((current) => ({ ...current, evidence: 'Wait for the photo to finish uploading.' }));
+      return;
+    }
     window.localStorage.setItem(draftStorageKey, JSON.stringify(draft));
     setIsSaved(true);
   };
+
+  const evidencePreviewUrl = localEvidencePreviewUrl
+    ?? (draft.evidence ? `/api/storage${draft.evidence.objectPath}` : undefined);
 
   return (
     <div className="app-shell">
@@ -302,31 +376,33 @@ export default function ReportPage() {
                   <div className="field-grid">
                     <div className={`field ${errors.evidence ? 'has-error' : ''}`}>
                       <FieldLabel optional>Photo evidence</FieldLabel>
-                      <span className="hint">A photo can help the City understand the issue. JPG, PNG, or other image files up to 3 MB.</span>
+                       <span className="hint">A photo can help the City understand the issue. JPG, PNG, WebP, or GIF images up to 3 MB.</span>
                       <button
                         type="button"
                         className="evidence-picker"
                         onClick={() => evidenceInputRef.current?.click()}
+                         disabled={isEvidenceUploading}
+                         aria-busy={isEvidenceUploading}
                         data-testid="button-add-evidence"
                       >
                         <ImagePlus size={18} />
-                        <span>{draft.evidence ? 'Replace photo' : 'Choose a photo'}</span>
+                         <span>{isEvidenceUploading ? 'Uploading photo…' : draft.evidence ? 'Replace photo' : 'Choose a photo'}</span>
                       </button>
                       <input
                         ref={evidenceInputRef}
                         className="file-input"
                         type="file"
-                        accept="image/*"
+                        accept="image/jpeg,image/png,image/webp,image/gif"
                         onChange={handleEvidenceChange}
                         aria-label="Choose photo evidence"
                         data-testid="input-evidence"
                       />
-                      {draft.evidence && (
+                      {(draft.evidence || localEvidencePreviewUrl) && (
                         <div className="evidence-preview">
-                          <img src={draft.evidence.dataUrl} alt={`Preview of ${draft.evidence.name}`} />
+                          {evidencePreviewUrl && <img src={evidencePreviewUrl} alt={`Preview of ${draft.evidence?.name || 'selected photo'}`} />}
                           <div className="evidence-preview-copy">
-                            <strong>{draft.evidence.name}</strong>
-                            <span>Attached to this report</span>
+                            <strong>{draft.evidence?.name || 'Selected photo'}</strong>
+                            <span>{isEvidenceUploading ? 'Uploading securely…' : 'Attached to this report'}</span>
                           </div>
                           <button
                             type="button"

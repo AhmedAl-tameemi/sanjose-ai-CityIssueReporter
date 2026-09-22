@@ -1,0 +1,1 @@
+- [Private evidence storage](private-evidence-storage.md) — resident images belong in private managed object storage, not browser storage or database rows.
