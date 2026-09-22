@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "City Issue Reporter"
+description = "A welcoming, accessible resident-facing web app for submitting community issue reports and receiving a clear confirmation summary."
+version = "1.0.0"
+id = "artifacts/city-issue-reporter"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18397
+
+[services.development]
+run = "pnpm --filter @workspace/city-issue-reporter run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/city-issue-reporter", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/city-issue-reporter/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18397"
+BASE_PATH = "/"
