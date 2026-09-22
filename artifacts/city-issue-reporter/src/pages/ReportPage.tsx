@@ -5,6 +5,7 @@ import {
   CarFront,
   Check,
   CircleHelp,
+  ImagePlus,
   KeyRound,
   Lightbulb,
   MapPin,
@@ -12,6 +13,7 @@ import {
   ShieldCheck,
   Sparkles,
   Trash2,
+  X,
 } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import {
@@ -26,6 +28,7 @@ type FieldErrors = Partial<Record<keyof ReportDraft, string>>;
 
 const draftStorageKey = 'city-issue-reporter-draft-v2';
 const reportStorageKey = 'city-issue-reporter-last-report';
+const maxEvidenceSize = 3 * 1024 * 1024;
 
 const issueIcons: Record<IssueType, typeof CarFront> = {
   'Unsafe driving': CarFront,
@@ -61,6 +64,7 @@ export default function ReportPage() {
   const [errors, setErrors] = useState<FieldErrors>({});
   const [isSaved, setIsSaved] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const evidenceInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     window.localStorage.setItem(draftStorageKey, JSON.stringify(draft));
@@ -97,6 +101,41 @@ export default function ReportPage() {
 
   const goNext = () => {
     if (validateStep(step)) setStep((current) => Math.min(3, current + 1));
+  };
+
+  const handleEvidenceChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setErrors((current) => ({ ...current, evidence: 'Choose an image file.' }));
+      event.target.value = '';
+      return;
+    }
+
+    if (file.size > maxEvidenceSize) {
+      setErrors((current) => ({ ...current, evidence: 'Choose an image smaller than 3 MB.' }));
+      event.target.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result !== 'string') {
+        setErrors((current) => ({ ...current, evidence: 'This image could not be added. Try another file.' }));
+        return;
+      }
+      update('evidence', { name: file.name, type: file.type, dataUrl: reader.result });
+    };
+    reader.onerror = () => {
+      setErrors((current) => ({ ...current, evidence: 'This image could not be added. Try another file.' }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeEvidence = () => {
+    update('evidence', undefined);
+    if (evidenceInputRef.current) evidenceInputRef.current.value = '';
   };
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -259,8 +298,50 @@ export default function ReportPage() {
               {step === 3 && (
                 <div className="step-content">
                   <h3 className="step-heading" ref={headingRef} tabIndex={-1}>One last thing</h3>
-                  <p className="step-description">Add contact details if you would like to hear about this report. They are optional.</p>
+                  <p className="step-description">Add a photo or contact details if either would help with this report. Both are optional.</p>
                   <div className="field-grid">
+                    <div className={`field ${errors.evidence ? 'has-error' : ''}`}>
+                      <FieldLabel optional>Photo evidence</FieldLabel>
+                      <span className="hint">A photo can help the City understand the issue. JPG, PNG, or other image files up to 3 MB.</span>
+                      <button
+                        type="button"
+                        className="evidence-picker"
+                        onClick={() => evidenceInputRef.current?.click()}
+                        data-testid="button-add-evidence"
+                      >
+                        <ImagePlus size={18} />
+                        <span>{draft.evidence ? 'Replace photo' : 'Choose a photo'}</span>
+                      </button>
+                      <input
+                        ref={evidenceInputRef}
+                        className="file-input"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleEvidenceChange}
+                        aria-label="Choose photo evidence"
+                        data-testid="input-evidence"
+                      />
+                      {draft.evidence && (
+                        <div className="evidence-preview">
+                          <img src={draft.evidence.dataUrl} alt={`Preview of ${draft.evidence.name}`} />
+                          <div className="evidence-preview-copy">
+                            <strong>{draft.evidence.name}</strong>
+                            <span>Attached to this report</span>
+                          </div>
+                          <button
+                            type="button"
+                            className="evidence-remove"
+                            onClick={removeEvidence}
+                            aria-label="Remove photo evidence"
+                            title="Remove photo evidence"
+                            data-testid="button-remove-evidence"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      )}
+                      {errors.evidence && <span className="error-text" role="alert">{errors.evidence}</span>}
+                    </div>
                     <div className="field-grid two">
                       <div className="field">
                         <FieldLabel optional>Your name</FieldLabel>
@@ -281,6 +362,7 @@ export default function ReportPage() {
                       <div className="review-row"><span className="review-key">Location</span><span className="review-value">{draft.location}</span></div>
                       <div className="review-row"><span className="review-key">When</span><span className="review-value">{draft.date} · {draft.approximateTime}</span></div>
                       <div className="review-row"><span className="review-key">Details</span><span className="review-value">{draft.description}</span></div>
+                      {draft.evidence && <div className="review-row"><span className="review-key">Photo</span><span className="review-value">{draft.evidence.name}</span></div>}
                     </div>
                   </div>
                 </div>

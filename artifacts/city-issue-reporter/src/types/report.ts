@@ -17,6 +17,12 @@ export const frequencies = [
 export type IssueType = (typeof issueTypes)[number];
 export type Frequency = (typeof frequencies)[number];
 
+export type EvidenceImage = {
+  name: string;
+  type: string;
+  dataUrl: string;
+};
+
 export type Report = {
   reportNumber: string;
   issueType: IssueType;
@@ -25,6 +31,7 @@ export type Report = {
   approximateTime: string;
   description: string;
   frequency: Frequency;
+  evidence?: EvidenceImage;
   name?: string;
   email?: string;
   phone?: string;
@@ -40,6 +47,7 @@ export const blankDraft: ReportDraft = {
   approximateTime: '',
   description: '',
   frequency: '' as Frequency,
+  evidence: undefined,
   name: '',
   email: '',
   phone: '',

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Check, Clipboard, MapPin, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Check, Clipboard, ImageIcon, MapPin, RotateCcw } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import { type Report } from '../types/report';
 import { reportStorageKey } from './ReportPage';
@@ -90,6 +90,15 @@ export default function ConfirmationPage() {
                   <div className="summary-item full">
                     <span className="summary-label">Contact details</span>
                     <span className="summary-value">{[report.name, report.email, report.phone].filter(Boolean).join(' · ')}</span>
+                  </div>
+                )}
+                {report.evidence && (
+                  <div className="summary-item full">
+                    <span className="summary-label">Image evidence</span>
+                    <div className="confirmation-evidence">
+                      <img src={report.evidence.dataUrl} alt={`Submitted evidence: ${report.evidence.name}`} />
+                      <span><ImageIcon size={15} />{report.evidence.name}</span>
+                    </div>
                   </div>
                 )}
               </div>
