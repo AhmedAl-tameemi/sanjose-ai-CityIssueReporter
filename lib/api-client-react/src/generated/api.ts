@@ -22,7 +22,9 @@ import type {
 import type {
   ErrorEnvelope,
   EvidenceUploadResponse,
-  HealthStatus
+  HealthStatus,
+  ReportTranslationInput,
+  ReportTranslationResponse
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -123,6 +125,13 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
+
 export const getUploadEvidenceUrl = () => {
 
 
@@ -282,3 +291,99 @@ export function useGetEvidenceObject<TData = Awaited<ReturnType<typeof getEviden
 
   return withQueryKey(query, queryOptions.queryKey);
 }
+
+
+
+
+
+
+
+export const getTranslateReportUrl = () => {
+
+
+
+
+  return `/api/translate/report`
+}
+
+/**
+ * Preserves the resident's original text and returns an English translation for City staff.
+ * @summary Translate resident report text into English
+ */
+export const translateReport = async (reportTranslationInput: ReportTranslationInput, options?: Parameters<typeof customFetch>[1]): Promise<ReportTranslationResponse> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<ReportTranslationResponse>(getTranslateReportUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(reportTranslationInput)
+  }
+);}
+
+
+
+
+
+export const getTranslateReportMutationKey = () => ['translateReport'] as const;
+
+export const getTranslateReportMutationOptions = <TError = ErrorType<ErrorEnvelope>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof translateReport>>, TError,TranslateReportMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof translateReport>>, TError,TranslateReportMutationVariables, TContext> => {
+
+const mutationKey = getTranslateReportMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof translateReport>>, TranslateReportMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  translateReport(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type TranslateReportMutationResult = NonNullable<Awaited<ReturnType<typeof translateReport>>>
+    export type TranslateReportMutationBody = BodyType<ReportTranslationInput>
+    export type TranslateReportMutationError = ErrorType<ErrorEnvelope>
+    export type TranslateReportMutationVariables = {data: BodyType<ReportTranslationInput>}
+
+    /**
+ * @summary Translate resident report text into English
+ */
+export const useTranslateReport = <TError = ErrorType<ErrorEnvelope>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof translateReport>>, TError,TranslateReportMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof translateReport>>,
+        TError,
+        TranslateReportMutationVariables,
+        TContext
+      > => {
+      return useMutation(getTranslateReportMutationOptions(options));
+    }
+

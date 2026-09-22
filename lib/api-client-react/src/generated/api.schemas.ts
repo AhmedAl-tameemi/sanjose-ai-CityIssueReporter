@@ -16,6 +16,30 @@ export interface EvidenceUploadResponse {
   size: number;
 }
 
+export interface ReportTranslationInput {
+  /**
+     * @minLength 2
+     * @maxLength 10
+     */
+  sourceLanguage: string;
+  /** @maxLength 300 */
+  location: string;
+  /** @maxLength 100 */
+  approximateTime: string;
+  /**
+     * @minLength 1
+     * @maxLength 500
+     */
+  description: string;
+}
+
+export interface ReportTranslationResponse {
+  location: string;
+  approximateTime: string;
+  description: string;
+}
+
 export interface ErrorEnvelope {
   error: string;
 }
+

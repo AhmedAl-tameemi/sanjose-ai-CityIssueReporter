@@ -1,0 +1,10 @@
+---
+name: Resident text translation
+description: Provider and data-preservation rules for multilingual resident reports.
+---
+
+Preserve resident-entered text exactly as submitted and store any English translation as a separate staff-facing value. Use the project owner’s `OPENAI_API_KEY` secret for free-form translation; do not retry managed AI setup for this feature.
+
+**Why:** Managed AI provisioning required phone verification, and the project owner chose the user-supplied key path instead. Replacing source text would also remove the authoritative resident statement.
+
+**How to apply:** Keep interface translations in the local catalog. Send only free-form report fields to the server translation route, fail without losing the report, and mark the English translation as pending when the secret or provider is unavailable.

@@ -1,3 +1,5 @@
+import type { LanguageCode } from '../i18n';
+
 export const issueTypes = [
   'Unsafe driving',
   'Speeding',
@@ -24,6 +26,12 @@ export type EvidenceImage = {
   objectPath: string;
 };
 
+export type StaffEnglishTranslation = {
+  location: string;
+  approximateTime: string;
+  description: string;
+};
+
 export type Report = {
   reportNumber: string;
   issueType: IssueType;
@@ -37,9 +45,15 @@ export type Report = {
   email?: string;
   phone?: string;
   submittedAt: string;
+  language?: LanguageCode;
+  englishTranslation?: StaffEnglishTranslation;
+  translationStatus?: 'complete' | 'pending' | 'not-needed';
 };
 
-export type ReportDraft = Omit<Report, 'reportNumber' | 'submittedAt'>;
+export type ReportDraft = Omit<
+  Report,
+  'reportNumber' | 'submittedAt' | 'language' | 'englishTranslation' | 'translationStatus'
+>;
 
 export const blankDraft: ReportDraft = {
   issueType: '' as IssueType,

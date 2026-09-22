@@ -12,6 +12,8 @@ tags:
     description: Health operations
   - name: Storage
     description: Private object storage for resident evidence.
+  - name: Translation
+    description: English translations for City staff review.
 paths:
   /healthz:
     get:
@@ -118,6 +120,43 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
+  /translate/report:
+    post:
+      operationId: translateReport
+      tags: [Translation]
+      summary: Translate resident report text into English
+      description: Preserves the resident's original text and returns an English translation for City staff.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReportTranslationInput"
+      responses:
+        "200":
+          description: English translation of the resident-entered report fields.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportTranslationResponse"
+        "400":
+          description: Invalid translation request.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "503":
+          description: Translation service is not configured.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "502":
+          description: Translation provider failed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
 components:
   schemas:
     HealthStatus:
@@ -141,6 +180,41 @@ components:
         - objectPath
         - contentType
         - size
+    ReportTranslationInput:
+      type: object
+      properties:
+        sourceLanguage:
+          type: string
+          minLength: 2
+          maxLength: 10
+        location:
+          type: string
+          maxLength: 300
+        approximateTime:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+          minLength: 1
+          maxLength: 500
+      required:
+        - sourceLanguage
+        - location
+        - approximateTime
+        - description
+    ReportTranslationResponse:
+      type: object
+      properties:
+        location:
+          type: string
+        approximateTime:
+          type: string
+        description:
+          type: string
+      required:
+        - location
+        - approximateTime
+        - description
     ErrorEnvelope:
       type: object
       properties:

@@ -36,3 +36,34 @@ export const GetEvidenceObjectParams = zod.object({
 })
 
 export const GetEvidenceObjectResponse = zod.unknown()
+
+
+/**
+ * Preserves the resident's original text and returns an English translation for City staff.
+ * @summary Translate resident report text into English
+ */
+export const translateReportBodySourceLanguageMin = 2;
+export const translateReportBodySourceLanguageMax = 10;
+
+export const translateReportBodyLocationMax = 300;
+
+export const translateReportBodyApproximateTimeMax = 100;
+
+export const translateReportBodyDescriptionMax = 500;
+
+
+
+export const TranslateReportBody = zod.object({
+  "sourceLanguage": zod.string().min(translateReportBodySourceLanguageMin).max(translateReportBodySourceLanguageMax),
+  "location": zod.string().max(translateReportBodyLocationMax),
+  "approximateTime": zod.string().max(translateReportBodyApproximateTimeMax),
+  "description": zod.string().min(1).max(translateReportBodyDescriptionMax)
+})
+
+export const TranslateReportResponse = zod.object({
+  "location": zod.string(),
+  "approximateTime": zod.string(),
+  "description": zod.string()
+})
+
+
