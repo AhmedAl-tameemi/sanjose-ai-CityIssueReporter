@@ -24,7 +24,7 @@ import {
 
 type FieldErrors = Partial<Record<keyof ReportDraft, string>>;
 
-const draftStorageKey = 'city-issue-reporter-draft';
+const draftStorageKey = 'city-issue-reporter-draft-v2';
 const reportStorageKey = 'city-issue-reporter-last-report';
 
 const issueIcons: Record<IssueType, typeof CarFront> = {
@@ -105,7 +105,8 @@ export default function ReportPage() {
       setStep(2);
       return;
     }
-    const reportNumber = `CIR-${new Date().getFullYear()}-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+    const uniquePart = crypto.randomUUID().split('-')[0].toUpperCase();
+    const reportNumber = `CIR-${new Date().getFullYear()}-${uniquePart}`;
     const report = { ...draft, reportNumber, submittedAt: new Date().toISOString() };
     window.localStorage.setItem(reportStorageKey, JSON.stringify(report));
     window.localStorage.removeItem(draftStorageKey);

@@ -84,7 +84,14 @@ export default function ConfirmationPage() {
                 <div className="summary-item"><span className="summary-label">Location</span><span className="summary-value" data-testid="text-summary-location">{report.location}</span></div>
                 <div className="summary-item"><span className="summary-label">Date noticed</span><span className="summary-value">{report.date}</span></div>
                 <div className="summary-item"><span className="summary-label">Approximate time</span><span className="summary-value">{report.approximateTime}</span></div>
+                <div className="summary-item"><span className="summary-label">How often</span><span className="summary-value">{report.frequency}</span></div>
                 <div className="summary-item full"><span className="summary-label">What you told us</span><span className="summary-value">{report.description}</span></div>
+                {(report.name || report.email || report.phone) && (
+                  <div className="summary-item full">
+                    <span className="summary-label">Contact details</span>
+                    <span className="summary-value">{[report.name, report.email, report.phone].filter(Boolean).join(' · ')}</span>
+                  </div>
+                )}
               </div>
             </section>
 

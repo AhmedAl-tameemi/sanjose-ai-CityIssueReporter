@@ -1,6 +1,6 @@
-# [Project name]
+# City Issue Reporter
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+An accessible resident-facing web app for reporting community issues and receiving a clear confirmation number and next-step guidance.
 
 ## Run & Operate
 
@@ -22,15 +22,22 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/city-issue-reporter/src/pages/ReportPage.tsx` — resident reporting flow with browser-saved draft state.
+- `artifacts/city-issue-reporter/src/pages/ConfirmationPage.tsx` — submitted report summary and next-step confirmation.
+- `artifacts/city-issue-reporter/src/types/report.ts` — report fields and supported issue/frequency options.
+- `artifacts/city-issue-reporter/src/index.css` — app theme and responsive UI styles.
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- The first prototype is frontend-only and stores the draft/latest report in browser storage so the resident journey can be evaluated without a staff system.
+- Reports use a short human-readable confirmation number that residents can save and use for later follow-up.
+- The form is split into three steps with required-field validation and keyboard-friendly focus movement.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Residents can report unsafe driving, speeding, potholes, illegal dumping, streetlight problems, or another community issue.
+- Residents can provide a location, date, approximate time, description, frequency, and optional contact details.
+- After submission, the app confirms receipt, summarizes the report, explains review/routing, and gives the resident a next step without promising a resolution or date.
 
 ## User preferences
 

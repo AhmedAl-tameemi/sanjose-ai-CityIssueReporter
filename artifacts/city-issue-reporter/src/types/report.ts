@@ -34,12 +34,12 @@ export type Report = {
 export type ReportDraft = Omit<Report, 'reportNumber' | 'submittedAt'>;
 
 export const blankDraft: ReportDraft = {
-  issueType: 'Potholes',
+  issueType: '' as IssueType,
   location: '',
   date: '',
   approximateTime: '',
   description: '',
-  frequency: 'One time',
+  frequency: '' as Frequency,
   name: '',
   email: '',
   phone: '',
