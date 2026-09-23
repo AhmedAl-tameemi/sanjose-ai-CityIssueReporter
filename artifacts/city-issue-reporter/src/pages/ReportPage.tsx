@@ -207,7 +207,6 @@ export default function ReportPage() {
 
   const continueWithReport = () => {
     setSafetyEscalationAcknowledged(true);
-    setStep(3);
   };
 
   const handleEvidenceChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
