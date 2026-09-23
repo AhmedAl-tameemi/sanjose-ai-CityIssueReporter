@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
+  AlertTriangle,
   CarFront,
   Check,
   ChevronDown,
@@ -103,6 +104,21 @@ function FieldLabel({ children, optional }: { children: string; optional?: boole
   );
 }
 
+function isImmediateDangerDescription(description: string): boolean {
+  const text = description
+    .toLocaleLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
+  if (!text) return false;
+
+  const explicitEmergency = /\b(immediate danger|active emergency|emergency right now|in danger right now|happening right now|happening now|right now|at this moment|currently happening|ongoing emergency)\b/u;
+  const activeThreat = /\b(about to (?:get|be) hit|about to hit (?:someone|a person|people|pedestrians|us)|speeding toward (?:someone|a person|people|pedestrians|us)|driving toward (?:someone|a person|people|pedestrians|us)|swerving toward (?:someone|a person|people|pedestrians|us))\b/u;
+  const activeCrash = /\b(?:there (?:is|s)|just|currently|right now|happening now|ongoing)\b.{0,70}\b(?:crash|collision|accident)\b.{0,70}\b(?:hurt|injured|bleeding|unconscious|trapped|victim)\b/u;
+  const activeInjury = /\b(?:someone|somebody|a person|people)\b.{0,45}\b(?:is|are)\b.{0,20}\b(?:hurt|injured|bleeding|unconscious|trapped)\b.{0,35}\b(?:now|currently|right now|immediately)?\b/u;
+
+  return explicitEmergency.test(text) || activeThreat.test(text) || activeCrash.test(text) || activeInjury.test(text);
+}
+
 export default function ReportPage() {
   const { language, direction, setLanguage, t } = useLanguage();
   const [, setLocation] = useLocation();
@@ -114,6 +130,7 @@ export default function ReportPage() {
   const [isTranslating, setIsTranslating] = useState(false);
   const [isSearchingLocation, setIsSearchingLocation] = useState(false);
   const [locationMapVersion, setLocationMapVersion] = useState(0);
+  const [safetyEscalationAcknowledged, setSafetyEscalationAcknowledged] = useState(false);
   const [localEvidencePreviewUrl, setLocalEvidencePreviewUrl] = useState<string>();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const evidenceInputRef = useRef<HTMLInputElement>(null);
@@ -138,6 +155,7 @@ export default function ReportPage() {
     setDraft((current) => ({ ...current, [field]: value }));
     setErrors((current) => ({ ...current, [field]: undefined }));
     setIsSaved(false);
+    if (field === 'description') setSafetyEscalationAcknowledged(false);
   };
 
   const patchLocation = (patch: Partial<ReportDraft>) => {
@@ -171,7 +189,18 @@ export default function ReportPage() {
   };
 
   const goNext = () => {
-    if (validateStep(step)) setStep((current) => Math.min(3, current + 1));
+    if (!validateStep(step)) return;
+    if (
+      step === 2 &&
+      isImmediateDangerDescription(draft.description) &&
+      !safetyEscalationAcknowledged
+    ) return;
+    setStep((current) => Math.min(3, current + 1));
+  };
+
+  const continueWithReport = () => {
+    setSafetyEscalationAcknowledged(true);
+    setStep(3);
   };
 
   const handleEvidenceChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -307,6 +336,7 @@ export default function ReportPage() {
       setStep(1);
       setIsSearchingLocation(false);
       setLocationMapVersion((version) => version + 1);
+      setSafetyEscalationAcknowledged(false);
       window.localStorage.removeItem(draftStorageKey);
     }
   };
@@ -452,6 +482,19 @@ export default function ReportPage() {
                         {errors.description ? <span className="error-text" role="alert">{errors.description}</span> : <span className="hint">{t('privacyHint')}</span>}
                         <span className="hint">{draft.description.length}/500</span>
                       </div>
+                      {isImmediateDangerDescription(draft.description) && !safetyEscalationAcknowledged && (
+                        <div className="safety-escalation" role="alert" aria-live="assertive" data-testid="safety-escalation">
+                          <div className="safety-escalation-heading">
+                            <AlertTriangle size={20} aria-hidden="true" />
+                            <strong>{t('safetyEscalationTitle')}</strong>
+                          </div>
+                          <p>{t('safetyEscalationText')}</p>
+                          <div className="safety-escalation-actions">
+                            <a className="button safety-call" href="tel:911" data-testid="link-call-911">{t('call911')}</a>
+                            <button type="button" className="button safety-continue" onClick={continueWithReport} data-testid="button-continue-with-report">{t('continueWithReport')}</button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <div className={`field ${errors.frequency ? 'has-error' : ''}`}>
                       <FieldLabel>{t('frequencyLabel')}</FieldLabel>
