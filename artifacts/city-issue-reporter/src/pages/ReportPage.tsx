@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import { translateReport } from '@workspace/api-client-react';
+import AddressMap from '../components/AddressMap';
 import {
   blankDraft,
   frequencies,
@@ -72,7 +73,21 @@ function readDraft(): ReportDraft {
             objectPath: storedEvidence.objectPath,
           }
         : undefined;
-    return { ...blankDraft, ...parsed, evidence };
+    const hasCoordinates =
+      typeof parsed.pinLatitude === 'number' &&
+      Number.isFinite(parsed.pinLatitude) &&
+      Math.abs(parsed.pinLatitude) <= 90 &&
+      typeof parsed.pinLongitude === 'number' &&
+      Number.isFinite(parsed.pinLongitude) &&
+      Math.abs(parsed.pinLongitude) <= 180;
+    return {
+      ...blankDraft,
+      ...parsed,
+      evidence,
+      searchedAddress: hasCoordinates && typeof parsed.searchedAddress === 'string' ? parsed.searchedAddress : '',
+      pinLatitude: hasCoordinates ? parsed.pinLatitude : undefined,
+      pinLongitude: hasCoordinates ? parsed.pinLongitude : undefined,
+    };
   } catch {
     return blankDraft;
   }
@@ -97,6 +112,8 @@ export default function ReportPage() {
   const [isSaved, setIsSaved] = useState(false);
   const [isEvidenceUploading, setIsEvidenceUploading] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [isSearchingLocation, setIsSearchingLocation] = useState(false);
+  const [locationMapVersion, setLocationMapVersion] = useState(0);
   const [localEvidencePreviewUrl, setLocalEvidencePreviewUrl] = useState<string>();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const evidenceInputRef = useRef<HTMLInputElement>(null);
@@ -123,11 +140,24 @@ export default function ReportPage() {
     setIsSaved(false);
   };
 
+  const patchLocation = (patch: Partial<ReportDraft>) => {
+    setDraft((current) => ({ ...current, ...patch }));
+    setErrors((current) => ({ ...current, location: undefined }));
+    setIsSaved(false);
+  };
+
   const validateStep = (currentStep: number) => {
     const nextErrors: FieldErrors = {};
     if (currentStep === 1) {
       if (!draft.issueType) nextErrors.issueType = t('errorIssue');
       if (!draft.location.trim()) nextErrors.location = t('errorRequired');
+      else if (
+        isSearchingLocation ||
+        !draft.searchedAddress ||
+        draft.location !== draft.searchedAddress ||
+        !Number.isFinite(draft.pinLatitude) ||
+        !Number.isFinite(draft.pinLongitude)
+      ) nextErrors.location = t('addressSearchRequired');
     }
     if (currentStep === 2) {
       if (!draft.date) nextErrors.date = t('errorRequired');
@@ -217,6 +247,10 @@ export default function ReportPage() {
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!validateStep(1)) {
+      setStep(1);
+      return;
+    }
     if (isEvidenceUploading) {
       setErrors((current) => ({ ...current, evidence: t('errorUploadWait') }));
       return;
@@ -271,6 +305,8 @@ export default function ReportPage() {
       setDraft(blankDraft);
       setErrors({});
       setStep(1);
+      setIsSearchingLocation(false);
+      setLocationMapVersion((version) => version + 1);
       window.localStorage.removeItem(draftStorageKey);
     }
   };
@@ -380,19 +416,14 @@ export default function ReportPage() {
                       </div>
                       {errors.issueType && <span className="error-text" role="alert">{errors.issueType}</span>}
                     </div>
-                    <div className={`field ${errors.location ? 'has-error' : ''}`}>
-                      <FieldLabel>{t('locationLabel')}</FieldLabel>
-                      <input
-                        type="text"
-                        value={draft.location}
-                        onChange={(event) => update('location', event.target.value)}
-                        placeholder={t('locationPlaceholder')}
-                        dir="auto"
-                        aria-invalid={Boolean(errors.location)}
-                        data-testid="input-location"
-                      />
-                      {errors.location ? <span className="error-text" role="alert">{errors.location}</span> : <span className="hint">{t('locationHint')}</span>}
-                    </div>
+                    <AddressMap
+                      key={locationMapVersion}
+                      draft={draft}
+                      error={errors.location}
+                      onPatch={patchLocation}
+                      onError={(message) => setErrors((current) => ({ ...current, location: message }))}
+                      onSearching={setIsSearchingLocation}
+                    />
                   </div>
                 </div>
               )}

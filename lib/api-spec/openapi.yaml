@@ -14,7 +14,27 @@ tags:
     description: Private object storage for resident evidence.
   - name: Translation
     description: English translations for City staff review.
+  - name: Maps
+    description: Browser configuration for the address map.
 paths:
+  /maps/config:
+    get:
+      operationId: getMapsConfig
+      tags: [Maps]
+      summary: Get the browser-restricted Google Maps key
+      responses:
+        "200":
+          description: Maps JavaScript API configuration.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MapsConfig"
+        "503":
+          description: Google Maps is not configured.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
   /healthz:
     get:
       operationId: healthCheck
@@ -159,6 +179,13 @@ paths:
                 $ref: "#/components/schemas/ErrorEnvelope"
 components:
   schemas:
+    MapsConfig:
+      type: object
+      properties:
+        apiKey:
+          type: string
+      required:
+        - apiKey
     HealthStatus:
       type: object
       properties:

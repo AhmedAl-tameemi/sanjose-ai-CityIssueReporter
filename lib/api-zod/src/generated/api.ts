@@ -9,6 +9,14 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Get the browser-restricted Google Maps key
+ */
+export const GetMapsConfigResponse = zod.object({
+  "apiKey": zod.string()
+})
+
+
+/**
  * Returns server health status
  * @summary Health check
  */

@@ -36,6 +36,9 @@ export type Report = {
   reportNumber: string;
   issueType: IssueType;
   location: string;
+  searchedAddress?: string;
+  pinLatitude?: number;
+  pinLongitude?: number;
   date: string;
   approximateTime: string;
   description: string;
@@ -58,6 +61,9 @@ export type ReportDraft = Omit<
 export const blankDraft: ReportDraft = {
   issueType: '' as IssueType,
   location: '',
+  searchedAddress: '',
+  pinLatitude: undefined,
+  pinLongitude: undefined,
   date: '',
   approximateTime: '',
   description: '',

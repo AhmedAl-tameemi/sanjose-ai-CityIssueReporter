@@ -1,0 +1,47 @@
+Replace the existing “Where is it?” section with a precise address + map location system. Do not change anything else on the site or redesign the existing style.
+
+LOCATION FLOW:
+
+1. Heading: “Where is it? *”
+
+2. Under it display:
+“Search address and then adjust the red pin if needed.”
+
+3. Add a required street address field.
+- Require a valid, GPS-searchable street address.
+- Do not accept landmarks or general locations.
+- Example placeholder: “123 Main St, San José, CA 95112”
+
+4. Add a full-width “Search (required)” button below the address field.
+- The resident must enter an address and press Search before continuing.
+- Validate/geocode the address.
+- Do not allow Continue until a valid address has been searched.
+
+5. The Google Map should ALWAYS be visible below the Search button, even before an address is searched.
+- Before searching, show the map at its normal default view.
+- After Search, center the map on the validated address and automatically move the red pin there.
+
+6. Above the map display:
+“If needed, drag red pin to the exact location.”
+
+7. After searching, allow the resident to drag the red pin to make precise adjustments to the incident location.
+
+8. When the pin is moved:
+- Save the new exact latitude and longitude immediately.
+- Reverse-geocode the new pin location.
+- If a valid street address exists at the new location, automatically update the address field.
+- If there is no exact street address at the pin location, keep the last valid searched address but still save the pin’s exact coordinates.
+- Do NOT require the resident to search again after moving the pin.
+- Do NOT ask them to move the pin closer to an address. The pin represents the exact incident location and can be different from the street address.
+
+9. The final report must save:
+- Validated street address
+- Final exact pin latitude
+- Final exact pin longitude
+
+10. If the resident manually edits the address field after searching, require them to press Search again before continuing.
+
+The intended flow is:
+Enter street address → Search → map centers on address → optionally drag pin to exact incident location → Continue.
+
+Keep the map visible throughout the entire process and match the existing website’s design, spacing, and layout.

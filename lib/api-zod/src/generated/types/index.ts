@@ -9,5 +9,6 @@
 export * from './errorEnvelope';
 export * from './evidenceUploadResponse';
 export * from './healthStatus';
+export * from './mapsConfig';
 export * from './reportTranslationInput';
 export * from './reportTranslationResponse';
