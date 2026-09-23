@@ -111,12 +111,17 @@ function isImmediateDangerDescription(description: string): boolean {
     .trim();
   if (!text) return false;
 
-  const explicitEmergency = /\b(immediate danger|active emergency|emergency right now|in danger right now|happening right now|happening now|right now|at this moment|currently happening|ongoing emergency)\b/u;
+  const explicitEmergency = /\b(immediate danger|active emergency|emergency right now|ongoing emergency|in danger right now|currently in danger)\b/u;
   const activeThreat = /\b(about to (?:get|be) hit|about to hit (?:someone|a person|people|pedestrians|us)|speeding toward (?:someone|a person|people|pedestrians|us)|driving toward (?:someone|a person|people|pedestrians|us)|swerving toward (?:someone|a person|people|pedestrians|us))\b/u;
   const activeCrash = /\b(?:there (?:is|s)|just|currently|right now|happening now|ongoing)\b.{0,70}\b(?:crash|collision|accident)\b.{0,70}\b(?:hurt|injured|bleeding|unconscious|trapped|victim)\b/u;
-  const activeInjury = /\b(?:someone|somebody|a person|people)\b.{0,45}\b(?:is|are)\b.{0,20}\b(?:hurt|injured|bleeding|unconscious|trapped)\b.{0,35}\b(?:now|currently|right now|immediately)?\b/u;
+  const activeCriticalInjury = /\b(?:someone|somebody|a person|people)\b.{0,45}\b(?:is|are)\b.{0,20}\b(?:bleeding|unconscious|trapped)\b/u;
+  const injuryRightNow = /\b(?:someone|somebody|a person|people)\b.{0,45}\b(?:is|are)\b.{0,20}\b(?:hurt|injured)\b.{0,35}\b(?:now|currently|right now|immediately)\b/u;
 
-  return explicitEmergency.test(text) || activeThreat.test(text) || activeCrash.test(text) || activeInjury.test(text);
+  return explicitEmergency.test(text) ||
+    activeThreat.test(text) ||
+    activeCrash.test(text) ||
+    activeCriticalInjury.test(text) ||
+    injuryRightNow.test(text);
 }
 
 export default function ReportPage() {
