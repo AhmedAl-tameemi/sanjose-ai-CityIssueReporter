@@ -110,12 +110,21 @@ function isImmediateDangerDescription(description: string): boolean {
     .replace(/\p{M}/gu, '')
     .toLocaleLowerCase()
     .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .replace(/\bthere s\b/gu, 'there is')
+    .replace(/\bcan t\b/gu, 'cannot')
+    .replace(/\bwon t\b/gu, 'will not')
     .replace(/\bde+a+d\b/gu, 'dead')
     .replace(/\b(?:deaad|ded)\b/gu, 'dead')
     .replace(/\b(?:kiled|killd)\b/gu, 'killed')
-    .replace(/\bunconsious\b/gu, 'unconscious')
-    .replace(/\bbleed+ing\b/gu, 'bleeding')
-    .replace(/\bstabb+ed\b/gu, 'stabbed')
+    .replace(/\b(?:unconsious|unconcious)\b/gu, 'unconscious')
+    .replace(/\b(?:unresposive|unresponcive)\b/gu, 'unresponsive')
+    .replace(/\bbleed+ing+\b/gu, 'bleeding')
+    .replace(/\b(?:stabb+ed|stabed)\b/gu, 'stabbed')
+    .replace(/\b(?:assulted|asaulted)\b/gu, 'assaulted')
+    .replace(/\btraped\b/gu, 'trapped')
+    .replace(/\brobberry\b/gu, 'robbery')
+    .replace(/\bexplotion\b/gu, 'explosion')
+    .replace(/\bshott\b/gu, 'shot')
     .replace(/\b(?:gun ?shots?|gun ?fire)\b/gu, 'gunshots')
     .replace(/\s+/g, ' ')
     .trim();
@@ -124,27 +133,32 @@ function isImmediateDangerDescription(description: string): boolean {
   const person = '(?:someone|somebody|a person|a man|a woman|a child|a kid|a pedestrian|this guy|this man|this woman|the victim|a victim|they|he|she|i|we)';
   const nearPerson = (signal: string, distance = 70) => new RegExp(`\\b${person}\\b.{0,${distance}}\\b${signal}\\b`, 'u').test(text);
 
-  const explicitEmergency = /\b(immediate danger|active emergency|emergency right now|ongoing emergency|in danger right now|currently in danger|life threatening|life threatening emergency|medical emergency|call 911|call an ambulance)\b/u;
-  const deathOrUnresponsive = nearPerson('(?:dead|killed|dying|unconscious|unresponsive|not breathing|passed away)') ||
-    /\b(?:dead body|body is unresponsive|body not breathing)\b/u.test(text);
-  const severeBleeding = nearPerson('(?:bleeding out|bleeding heavily|bleeding badly|bleeding profusely|losing (?:a lot of )?blood)') ||
+  const explicitEmergency = /\b(immediate danger|active emergency|emergency right now|ongoing emergency|in danger right now|currently in danger|life threatening|life threatening emergency|medical emergency|call 911|call an ambulance)\b/u.test(text);
+  const deathOrUnresponsive = nearPerson('(?:dead|killed|dying|unconscious|unresponsive|not responding|not breathing|passed away|passed out|will not wake up)') ||
+    /\b(?:dead body|body is unresponsive|body not breathing|will not wake up)\b/u.test(text);
+  const severeBleeding = nearPerson('(?:bleeding out|bleeding heavily|bleeding (?:really |very )?bad|bleeding profusely|losing (?:a lot of )?blood)') ||
     /\b(?:blood is pouring|blood pouring|blood everywhere|heavy bleeding)\b/u.test(text);
-  const shooting = /\b(?:gunshots|gunfire|active shooter|shooting in progress|there (?:is|was) a shooting|someone (?:got|was|is being) shot|i (?:just )?heard gunshots)\b/u.test(text) ||
-    nearPerson('(?:got|was|is being) shot', 45);
+  const shooting = /\b(?:gunshots|gunfire|shots fired|active shooter|shooting in progress|there (?:is|was) a shooting|gunshot wound|i (?:just )?heard (?:gunshots|shots|shooting))\b/u.test(text) ||
+    nearPerson('(?:got|was|is|has been|is being) shot', 45);
   const stabbing = /\b(?:there (?:is|was) a stabbing|stabbing in progress|knife attack|someone is being stabbed|someone got stabbed)\b/u.test(text) ||
-    nearPerson('(?:got|was|is being) stabbed', 45);
+    nearPerson('(?:got|was|is|has been|is being) stabbed', 45);
   const vehicleImpact = /\b(?:about to (?:get|be) hit|about to hit (?:someone|a person|people|pedestrians|us)|speeding toward (?:someone|a person|people|pedestrians|us)|driving toward (?:someone|a person|people|pedestrians|us)|swerving toward (?:someone|a person|people|pedestrians|us))\b/u.test(text) ||
-    nearPerson('(?:got|was|were|is|are|being) (?:run over|hit by (?:a|the) (?:car|vehicle|truck)|struck by (?:a|the) (?:car|vehicle|truck))', 45);
-  const seriousCrash = /\b(?:bad|serious|major|severe|terrible|horrific|fatal) (?:car )?(?:crash|collision|accident)\b/u.test(text) ||
-    (/\b(?:crash|collision|accident)\b/u.test(text) && /\b(?:hurt|injured|bleeding|unconscious|trapped|victim|badly hurt|seriously injured)\b/u.test(text));
-  const violentAttack = nearPerson('(?:attacked|assaulted|beaten|getting attacked|under attack|seriously injured|badly injured|severely injured)') ||
+    nearPerson('(?:got|was|were|is|are|being) (?:run over|hit by (?:a|the) (?:car|vehicle|truck)|struck by (?:a|the) (?:car|vehicle|truck))', 45) ||
+    /\b(?:car|vehicle|truck) (?:just )?(?:hit|struck|ran over) (?:someone|somebody|a person|a pedestrian|people)\b/u.test(text);
+  const crashMentionsInjury = /\b(?:crash|collision|accident)\b/u.test(text) &&
+    /\b(?:hurt|injured|bleeding|unconscious|trapped|victim|badly hurt|seriously injured)\b/u.test(text) &&
+    !/\b(?:no one|nobody|none|no person) (?:was |is |got )?(?:hurt|injured|trapped)\b|\bno injuries\b|\bwithout injuries\b/u.test(text);
+  const seriousCrash = /\b(?:bad|serious|major|severe|terrible|horrific|fatal) (?:car )?(?:crash|collision|accident)\b/u.test(text) || crashMentionsInjury;
+  const violentAttack = nearPerson('(?:attacked|assaulted|beaten|beat up|getting attacked|under attack|getting jumped|got jumped|seriously injured|badly injured|severely injured)') ||
     /\b(?:someone is attacking|someone is being assaulted|someone is being beaten)\b/u.test(text);
-  const activeCrime = /\b(?:someone (?:got|was|is being) robbed|there (?:is|was) an? (?:armed )?robbery|armed robbery|carjacking|car jacking|burglary (?:happening|in progress|just happened|right now|now)|home invasion)\b/u.test(text);
-  const weaponThreat = /\b(?:someone has a gun|someone has a weapon|someone is holding a gun|someone is carrying a gun|person with a gun|man with a gun|woman with a gun|pointing a gun|waving a gun|threatened with (?:a )?(?:gun|weapon|knife)|weapon threat)\b/u.test(text);
-  const fireOrExplosion = /\b(?:there is a fire|fire broke out|(?:house|building|home|apartment|car|vehicle|room|garage) is on fire|on fire|explosion|exploded|blast|heavy smoke|thick smoke|smoke (?:is )?(?:coming|pouring) from|smoke everywhere)\b/u.test(text);
-  const trapped = nearPerson('(?:trapped|unable to escape|cannot get out|can not get out|stuck inside|locked inside)') ||
-    /\b(?:someone is trapped|people are trapped|trapped inside|unable to escape|cannot escape|can not escape)\b/u.test(text);
-  const urgentMedical = /\b(?:not breathing|cannot breathe|can not breathe|cant breathe|can't breathe|having a heart attack|overdose|needs an ambulance|send an ambulance|send help now)\b/u.test(text);
+  const activeCrime = nearPerson('(?:got|was|is being) (?:robbed|mugged)', 45) ||
+    /\b(?:there (?:is|was) (?:an? )?(?:armed )?robbery|armed robbery|carjacking|car jacking|burglary (?:happening|in progress|just happened|right now|now)|break in in progress|home invasion)\b/u.test(text);
+  const weaponThreat = nearPerson('(?:(?:has|has got|is holding|is carrying|is pointing|is waving|pulled) (?:a )?(?:gun|weapon|knife))', 45) ||
+    /\b(?:person with a gun|man with a gun|woman with a gun|pointing a gun|gun pointed at|waving a gun|pulled a gun|knife to (?:his|her|my|their) throat|threatened with (?:a )?(?:gun|weapon|knife)|weapon threat)\b/u.test(text);
+  const fireOrExplosion = /\b(?:there is a fire|fire broke out|(?:house|building|home|apartment|car|vehicle|room|garage) is on fire|on fire|flames|explosion|exploded|blast|gas leak|smell gas|heavy smoke|thick smoke|smoke (?:is )?(?:coming|pouring) (?:from|out of)|smoke everywhere)\b/u.test(text);
+  const trapped = nearPerson('(?:trapped|unable to escape|cannot get out|can not get out|cannot leave|stuck inside|locked inside|held hostage)') ||
+    /\b(?:someone is trapped|people are trapped|trapped inside|unable to escape|cannot escape|can not escape|held hostage)\b/u.test(text);
+  const urgentMedical = /\b(?:not breathing|cannot breathe|can not breathe|cant breathe|having a heart attack|overdose|overdosed|choking|having a seizure|needs an ambulance|send an ambulance|send help now)\b/u.test(text);
 
   return explicitEmergency ||
     deathOrUnresponsive ||
