@@ -1,2 +1,3 @@
 - [Private evidence storage](private-evidence-storage.md) — resident images belong in private managed object storage, not browser storage or database rows.
 - [Resident text translation](resident-text-translation.md) — preserve residents’ original text; use a user-supplied OpenAI secret for staff-facing English translations.
+- [Public map services](public-map-services.md) — keep the prototype keyless; public OSM/Nominatim usage needs attribution, low request volume, and an upgrade path for scale.

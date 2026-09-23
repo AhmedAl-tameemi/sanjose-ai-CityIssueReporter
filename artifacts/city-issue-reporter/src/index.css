@@ -292,7 +292,10 @@
 .address-field .address-search { width: 100%; }
 .address-map-frame { position: relative; width: 100%; overflow: hidden; border: 1px solid hsl(var(--border)); border-radius: 11px; background: hsl(var(--background)); }
 .address-map { width: 100%; height: 270px; }
-.map-overlay { position: absolute; inset: 0; display: grid; place-items: center; padding: 16px; background: hsl(var(--background) / .9); color: hsl(var(--muted-foreground)); text-align: center; font-size: 13px; }
+.address-map .leaflet-control-attribution { font-size: 10px; }
+.address-pin { position: relative; background: transparent; border: 0; }
+.address-pin span { display: block; position: absolute; top: 2px; left: 3px; width: 22px; height: 22px; border: 2px solid white; border-radius: 50% 50% 50% 0; background: #d93025; transform: rotate(-45deg); box-shadow: 0 2px 7px #0006; }
+.address-pin span::after { content: ""; display: block; position: absolute; top: 6px; left: 6px; width: 6px; height: 6px; border-radius: 50%; background: #fff; }
 .char-count { display: flex; justify-content: space-between; gap: 10px; }
 
 .choice-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }

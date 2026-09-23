@@ -23,7 +23,6 @@ import type {
   ErrorEnvelope,
   EvidenceUploadResponse,
   HealthStatus,
-  MapsConfig,
   ReportTranslationInput,
   ReportTranslationResponse
 } from './api.schemas';
@@ -54,83 +53,6 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
-
-export const getGetMapsConfigUrl = () => {
-
-
-
-
-  return `/api/maps/config`
-}
-
-/**
- * @summary Get the browser-restricted Google Maps key
- */
-export const getMapsConfig = async ( options?: Parameters<typeof customFetch>[1]): Promise<MapsConfig> => {
-
-  return customFetch<MapsConfig>(getGetMapsConfigUrl(),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getGetMapsConfigQueryKey = () => {
-    return [
-    `/api/maps/config`
-    ] as const;
-    }
-
-
-export const getGetMapsConfigQueryOptions = <TData = Awaited<ReturnType<typeof getMapsConfig>>, TError = ErrorType<ErrorEnvelope>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMapsConfig>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getGetMapsConfigQueryKey();
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMapsConfig>>> = ({ signal }) => getMapsConfig({ signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMapsConfig>>, TError, TData> & { queryKey: QueryKey }
-}
-
-export type GetMapsConfigQueryResult = NonNullable<Awaited<ReturnType<typeof getMapsConfig>>>
-export type GetMapsConfigQueryError = ErrorType<ErrorEnvelope>
-
-
-/**
- * @summary Get the browser-restricted Google Maps key
- */
-
-export function useGetMapsConfig<TData = Awaited<ReturnType<typeof getMapsConfig>>, TError = ErrorType<ErrorEnvelope>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMapsConfig>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-
-  const queryOptions = getGetMapsConfigQueryOptions(options)
-
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
-
-
-
-
-
 
 export const getHealthCheckUrl = () => {
 
