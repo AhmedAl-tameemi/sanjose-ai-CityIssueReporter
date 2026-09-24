@@ -11,4 +11,6 @@ export interface EvidenceUploadResponse {
   objectPath: string;
   contentType: string;
   size: number;
+  /** Short-lived capability for the submitting resident's confirmation preview. */
+  previewToken: string;
 }

@@ -14,6 +14,8 @@ tags:
     description: Private object storage for resident evidence.
   - name: Translation
     description: English translations for City staff review.
+  - name: Staff
+    description: City staff authentication for evidence review.
 paths:
   /healthz:
     get:
@@ -100,6 +102,12 @@ paths:
           schema:
             type: string
           description: Private evidence path without the /objects/ prefix.
+        - name: x-resident-preview-token
+          in: header
+          required: false
+          schema:
+            type: string
+          description: Short-lived capability returned for the submitting resident's confirmation preview.
       responses:
         "200":
           description: Stored image evidence.
@@ -110,6 +118,12 @@ paths:
                 format: binary
         "404":
           description: Evidence object not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Staff authentication or a resident preview capability is required.
           content:
             application/json:
               schema:
@@ -157,6 +171,68 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
+  /staff/login:
+    post:
+      operationId: staffLogin
+      tags: [Staff]
+      summary: Authenticate a City staff member
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StaffLoginInput"
+      responses:
+        "200":
+          description: Staff session created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StaffSession"
+        "400":
+          description: Credentials are missing.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "401":
+          description: Credentials are invalid.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "503":
+          description: Staff access has not been configured.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /staff/session:
+    get:
+      operationId: getStaffSession
+      tags: [Staff]
+      summary: Get the current City staff session
+      responses:
+        "200":
+          description: Current staff session.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StaffSession"
+        "401":
+          description: No valid staff session.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+  /staff/logout:
+    post:
+      operationId: staffLogout
+      tags: [Staff]
+      summary: End the current City staff session
+      responses:
+        "204":
+          description: Staff session cleared.
 components:
   schemas:
     HealthStatus:
@@ -176,10 +252,43 @@ components:
           type: string
         size:
           type: integer
+        previewToken:
+          type: string
+          description: Short-lived capability for the submitting resident's confirmation preview.
       required:
         - objectPath
         - contentType
         - size
+        - previewToken
+    StaffLoginInput:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 1
+      required:
+        - email
+        - password
+    StaffSession:
+      type: object
+      properties:
+        authenticated:
+          type: boolean
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum:
+            - city-evidence-reviewer
+            - city-admin
+      required:
+        - authenticated
+        - email
+        - role
     ReportTranslationInput:
       type: object
       properties:

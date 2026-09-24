@@ -24,7 +24,8 @@ export const HealthCheckResponse = zod.object({
 export const UploadEvidenceResponse = zod.object({
   "objectPath": zod.string().describe('Private object path returned by the evidence service.'),
   "contentType": zod.string(),
-  "size": zod.number().int()
+  "size": zod.number().int(),
+  "previewToken": zod.string().describe('Short-lived capability for the submitting resident\'s confirmation preview.')
 })
 
 
@@ -33,6 +34,10 @@ export const UploadEvidenceResponse = zod.object({
  */
 export const GetEvidenceObjectParams = zod.object({
   "objectPath": zod.coerce.string().describe('Private evidence path without the /objects/ prefix.')
+})
+
+export const GetEvidenceObjectHeader = zod.object({
+  "x-resident-preview-token": zod.string().optional().describe('Short-lived capability returned for the submitting resident\'s confirmation preview.')
 })
 
 export const GetEvidenceObjectResponse = zod.unknown()
@@ -65,5 +70,39 @@ export const TranslateReportResponse = zod.object({
   "approximateTime": zod.string(),
   "description": zod.string()
 })
+
+
+/**
+ * @summary Authenticate a City staff member
+ */
+
+
+
+export const StaffLoginBody = zod.object({
+  "email": zod.string().email(),
+  "password": zod.string().min(1)
+})
+
+export const StaffLoginResponse = zod.object({
+  "authenticated": zod.boolean(),
+  "email": zod.string().email(),
+  "role": zod.enum(['city-evidence-reviewer', 'city-admin'])
+})
+
+
+/**
+ * @summary Get the current City staff session
+ */
+export const GetStaffSessionResponse = zod.object({
+  "authenticated": zod.boolean(),
+  "email": zod.string().email(),
+  "role": zod.enum(['city-evidence-reviewer', 'city-admin'])
+})
+
+
+/**
+ * @summary End the current City staff session
+ */
+export const StaffLogoutResponse = zod.void()
 
 

@@ -11,3 +11,6 @@ export * from './evidenceUploadResponse';
 export * from './healthStatus';
 export * from './reportTranslationInput';
 export * from './reportTranslationResponse';
+export * from './staffLoginInput';
+export * from './staffSession';
+export * from './staffSessionRole';

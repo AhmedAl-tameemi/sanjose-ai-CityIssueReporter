@@ -14,6 +14,28 @@ export interface EvidenceUploadResponse {
   objectPath: string;
   contentType: string;
   size: number;
+  /** Short-lived capability for the submitting resident's confirmation preview. */
+  previewToken: string;
+}
+
+export interface StaffLoginInput {
+  email: string;
+  /** @minLength 1 */
+  password: string;
+}
+
+export type StaffSessionRole = typeof StaffSessionRole[keyof typeof StaffSessionRole];
+
+
+export const StaffSessionRole = {
+  'city-evidence-reviewer': 'city-evidence-reviewer',
+  'city-admin': 'city-admin',
+} as const;
+
+export interface StaffSession {
+  authenticated: boolean;
+  email: string;
+  role: StaffSessionRole;
 }
 
 export interface ReportTranslationInput {

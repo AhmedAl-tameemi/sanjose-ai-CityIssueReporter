@@ -8,6 +8,12 @@ import express, {
 import { UploadEvidenceResponse } from "@workspace/api-zod";
 import { Readable } from "node:stream";
 import {
+  canResidentPreviewEvidence,
+  canStaffReadEvidence,
+  createResidentEvidencePreviewToken,
+  getStaffSession,
+} from "../lib/staffAuth";
+import {
   ObjectNotFoundError,
   ObjectStorageService,
 } from "../lib/objectStorage";
@@ -85,6 +91,7 @@ router.post(
         UploadEvidenceResponse.parse({
           ...stored,
           contentType,
+          previewToken: createResidentEvidencePreviewToken(stored.objectPath),
         }),
       );
     } catch (error) {
@@ -99,6 +106,14 @@ router.get(
   async (req: Request, res: Response) => {
     const raw = req.params.objectPath;
     const objectPath = `/objects/${Array.isArray(raw) ? raw.join("/") : raw}`;
+
+    const staffSession = getStaffSession(req);
+    if (!canStaffReadEvidence(staffSession) && !canResidentPreviewEvidence(req, objectPath)) {
+      res.status(401).json({
+        error: "Staff authentication or a resident preview token is required.",
+      });
+      return;
+    }
 
     try {
       const objectFile = await objectStorageService.getObjectEntityFile(objectPath);

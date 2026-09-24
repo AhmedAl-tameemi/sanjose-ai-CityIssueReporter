@@ -24,6 +24,7 @@ export type EvidenceImage = {
   type: string;
   size: number;
   objectPath: string;
+  previewToken: string;
 };
 
 export type StaffEnglishTranslation = {
@@ -76,4 +77,8 @@ export const blankDraft: ReportDraft = {
 
 export function isEvidenceObjectPath(value: unknown): value is string {
   return typeof value === 'string' && /^\/objects\/evidence\/[a-f0-9-]{36}$/i.test(value);
+}
+
+export function isEvidencePreviewToken(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0 && value.length <= 2048;
 }

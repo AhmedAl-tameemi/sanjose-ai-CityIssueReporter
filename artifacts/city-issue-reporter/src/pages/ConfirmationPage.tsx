@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Check, Clipboard, ImageIcon, MapPin, RotateCcw } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
-import { isEvidenceObjectPath, type Report } from '../types/report';
+import {
+  isEvidenceObjectPath,
+  isEvidencePreviewToken,
+  type Report,
+} from '../types/report';
+import { useResidentEvidencePreview } from '../lib/evidencePreview';
 import { reportStorageKey } from './ReportPage';
 import {
   frequencyTranslationKeys,
@@ -17,7 +22,13 @@ export default function ConfirmationPage() {
       const saved = window.localStorage.getItem(reportStorageKey);
       if (!saved) return null;
       const parsed = JSON.parse(saved) as Report & {
-        evidence?: { name?: unknown; type?: unknown; size?: unknown; objectPath?: unknown };
+        evidence?: {
+          name?: unknown;
+          type?: unknown;
+          size?: unknown;
+          objectPath?: unknown;
+          previewToken?: unknown;
+        };
       };
       const storedEvidence = parsed.evidence;
       return {
@@ -27,12 +38,14 @@ export default function ConfirmationPage() {
           typeof storedEvidence.name === 'string' &&
           typeof storedEvidence.type === 'string' &&
           typeof storedEvidence.size === 'number' &&
-          isEvidenceObjectPath(storedEvidence.objectPath)
+          isEvidenceObjectPath(storedEvidence.objectPath) &&
+          isEvidencePreviewToken(storedEvidence.previewToken)
             ? {
                 name: storedEvidence.name,
                 type: storedEvidence.type,
                 size: storedEvidence.size,
                 objectPath: storedEvidence.objectPath,
+                previewToken: storedEvidence.previewToken,
               }
             : undefined,
       };
@@ -49,6 +62,11 @@ export default function ConfirmationPage() {
       setLanguage(report.language);
     }
   }, [language, report?.language, setLanguage]);
+
+  const evidenceUrl = useResidentEvidencePreview(
+    report?.evidence?.objectPath,
+    report?.evidence?.previewToken,
+  );
 
   if (!report) {
     return (
@@ -80,10 +98,6 @@ export default function ConfirmationPage() {
   const startAnother = () => {
     setLocation('/');
   };
-
-  const evidenceUrl = report.evidence
-    ? `/api/storage${report.evidence.objectPath}`
-    : undefined;
 
   return (
     <div className="app-shell" dir={direction}>

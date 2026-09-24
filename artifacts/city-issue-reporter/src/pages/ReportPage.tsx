@@ -25,6 +25,7 @@ import {
   blankDraft,
   frequencies,
   isEvidenceObjectPath,
+  isEvidencePreviewToken,
   issueTypes,
   type IssueType,
   type Report,
@@ -37,6 +38,7 @@ import {
   useLanguage,
   type LanguageCode,
 } from '../i18n';
+import { useResidentEvidencePreview } from '../lib/evidencePreview';
 
 type FieldErrors = Partial<Record<keyof ReportDraft, string>>;
 
@@ -58,7 +60,13 @@ function readDraft(): ReportDraft {
     const saved = window.localStorage.getItem(draftStorageKey);
     if (!saved) return blankDraft;
     const parsed = JSON.parse(saved) as Partial<ReportDraft> & {
-      evidence?: { name?: unknown; type?: unknown; size?: unknown; objectPath?: unknown };
+      evidence?: {
+        name?: unknown;
+        type?: unknown;
+        size?: unknown;
+        objectPath?: unknown;
+        previewToken?: unknown;
+      };
     };
     const storedEvidence = parsed.evidence;
     const evidence =
@@ -66,12 +74,14 @@ function readDraft(): ReportDraft {
       typeof storedEvidence.name === 'string' &&
       typeof storedEvidence.type === 'string' &&
       typeof storedEvidence.size === 'number' &&
-      isEvidenceObjectPath(storedEvidence.objectPath)
+      isEvidenceObjectPath(storedEvidence.objectPath) &&
+      isEvidencePreviewToken(storedEvidence.previewToken)
         ? {
             name: storedEvidence.name,
             type: storedEvidence.type,
             size: storedEvidence.size,
             objectPath: storedEvidence.objectPath,
+            previewToken: storedEvidence.previewToken,
           }
         : undefined;
     const hasCoordinates =
@@ -287,7 +297,13 @@ export default function ReportPage() {
         body: file,
       });
       const result = (await response.json().catch(() => null)) as
-        | { objectPath?: unknown; contentType?: unknown; size?: unknown; error?: string }
+        | {
+            objectPath?: unknown;
+            contentType?: unknown;
+            size?: unknown;
+            previewToken?: unknown;
+            error?: string;
+          }
         | null;
 
       if (!response.ok) {
@@ -297,7 +313,8 @@ export default function ReportPage() {
         !result ||
         !isEvidenceObjectPath(result.objectPath) ||
         typeof result.contentType !== 'string' ||
-        typeof result.size !== 'number'
+        typeof result.size !== 'number' ||
+        !isEvidencePreviewToken(result.previewToken)
       ) {
         throw new Error(t('errorUpload'));
       }
@@ -307,6 +324,7 @@ export default function ReportPage() {
         type: result.contentType,
         size: result.size,
         objectPath: result.objectPath,
+        previewToken: result.previewToken,
       });
       setLocalEvidencePreviewUrl(undefined);
     } catch (error) {
@@ -405,8 +423,11 @@ export default function ReportPage() {
     setIsSaved(true);
   };
 
-  const evidencePreviewUrl = localEvidencePreviewUrl
-    ?? (draft.evidence ? `/api/storage${draft.evidence.objectPath}` : undefined);
+  const securedEvidencePreviewUrl = useResidentEvidencePreview(
+    draft.evidence?.objectPath,
+    draft.evidence?.previewToken,
+  );
+  const evidencePreviewUrl = localEvidencePreviewUrl ?? securedEvidencePreviewUrl;
 
   return (
     <div className="app-shell" dir={direction}>
