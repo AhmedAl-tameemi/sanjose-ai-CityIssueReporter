@@ -575,6 +575,7 @@ export default function ReportPage() {
                     <div className={`field ${errors.frequency ? 'has-error' : ''}`}>
                       <FieldLabel>{t('frequencyLabel')}</FieldLabel>
                       <select value={draft.frequency} onChange={(event) => update('frequency', event.target.value as ReportDraft['frequency'])} aria-invalid={Boolean(errors.frequency)} data-testid="select-frequency">
+                        <option value="" disabled>{t('selectFrequency')}</option>
                         {frequencies.map((frequency) => <option key={frequency} value={frequency}>{t(frequencyTranslationKeys[frequency])}</option>)}
                       </select>
                       {errors.frequency && <span className="error-text" role="alert">{errors.frequency}</span>}
