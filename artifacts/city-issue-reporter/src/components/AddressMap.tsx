@@ -103,7 +103,7 @@ export default function AddressMap({ draft, error, onPatch, onError, onSearching
       lookupController.current?.abort();
       const controller = new AbortController();
       lookupController.current = controller;
-      // Always save the actual pin location, even when reverse lookup fails.
+      // Keep a usable pin-only location even when reverse lookup finds no street address.
       patchRef.current({
         location: translateRef.current('mapPinLocation', {
           latitude: pin.lat.toFixed(5),
@@ -121,15 +121,15 @@ export default function AddressMap({ draft, error, onPatch, onError, onSearching
         if (!active || controller.signal.aborted || !isStreetAddress(result) || !isAtPin(result, pin)) return;
         patchRef.current({ location: result.display_name, searchedAddress: result.display_name });
       } catch {
-        // No exact street address here; retain the last validated address and exact coordinates.
+        // The dropped-pin coordinates and readable fallback location are already saved.
       }
     };
-    const createMarker = (position: Point, draggable: boolean) => {
-      const pin = L.marker([position.lat, position.lng], { icon: redPin, draggable }).addTo(instance);
+    const createMarker = (position: Point) => {
+      const pin = L.marker([position.lat, position.lng], { icon: redPin, draggable: true }).addTo(instance);
       pin.on('dragend', onDrag);
       marker.current = pin;
     };
-    createMarker(point, true);
+    createMarker(point);
     // Leaflet must measure the mounted map container after layout.
     requestAnimationFrame(() => { if (active) instance.invalidateSize(); });
     return () => {
@@ -190,27 +190,6 @@ export default function AddressMap({ draft, error, onPatch, onError, onSearching
       if (marker.current) {
         marker.current.setLatLng([position.lat, position.lng]);
         marker.current.dragging?.enable();
-      } else if (map.current) {
-        const pin = L.marker([position.lat, position.lng], { icon: redPin, draggable: true }).addTo(map.current);
-        pin.on('dragend', async () => {
-          const point = pin.getLatLng();
-          const exact: Point = { lat: point.lat, lng: point.lng };
-          lookupController.current?.abort();
-          const reverseController = new AbortController();
-          lookupController.current = reverseController;
-          patchRef.current({ pinLatitude: exact.lat, pinLongitude: exact.lng });
-          try {
-            const result = await lookup(
-              `/reverse?format=jsonv2&addressdetails=1&zoom=18&lat=${exact.lat}&lon=${exact.lng}`,
-              reverseController.signal,
-            ) as AddressResult;
-            if (reverseController.signal.aborted || !map.current || !isStreetAddress(result) || !isAtPin(result, exact)) return;
-            patchRef.current({ location: result.display_name, searchedAddress: result.display_name });
-          } catch {
-            // Preserve the last validated address when no exact address resolves.
-          }
-        });
-        marker.current = pin;
       }
     } catch {
       if (!controller.signal.aborted) onError(t('mapUnavailable'));
