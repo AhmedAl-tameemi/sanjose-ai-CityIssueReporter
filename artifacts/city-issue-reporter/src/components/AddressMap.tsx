@@ -126,6 +126,7 @@ export default function AddressMap({ draft, error, onPatch, onError, onSearching
     };
     const createMarker = (position: Point) => {
       const pin = L.marker([position.lat, position.lng], { icon: redPin, draggable: true }).addTo(instance);
+      pin.getElement()?.setAttribute('data-testid', 'map-pin');
       pin.on('dragend', onDrag);
       marker.current = pin;
     };
