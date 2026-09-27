@@ -393,6 +393,8 @@
 }
 .evidence-picker:hover { transform: translateY(-1px); border-color: hsl(var(--primary)); background: hsl(var(--secondary)); }
 .evidence-picker:focus-visible, .evidence-remove:focus-visible { outline: 3px solid hsl(var(--accent)); outline-offset: 2px; }
+.photo-evidence-field { border-radius: 10px; transition: background-color .16s ease; }
+.photo-evidence-field.is-dragging { outline: 2px dashed hsl(var(--primary)); outline-offset: 7px; background: hsl(var(--secondary) / .2); }
 .file-input { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }
 .evidence-preview {
   display: flex;

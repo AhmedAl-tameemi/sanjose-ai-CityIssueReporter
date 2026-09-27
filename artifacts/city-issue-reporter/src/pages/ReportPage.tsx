@@ -45,6 +45,13 @@ type FieldErrors = Partial<Record<keyof ReportDraft, string>>;
 
 const maxEvidenceSize = 3 * 1024 * 1024;
 
+function localDateValue(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 const issueIcons: Record<IssueType, typeof CarFront> = {
   'Unsafe driving': CarFront,
   Speeding: CarFront,
@@ -143,6 +150,7 @@ export default function ReportPage() {
   const [errors, setErrors] = useState<FieldErrors>({});
   const [isSaved, setIsSaved] = useState(false);
   const [isEvidenceUploading, setIsEvidenceUploading] = useState(false);
+  const [isEvidenceDragActive, setIsEvidenceDragActive] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const [isSearchingLocation, setIsSearchingLocation] = useState(false);
   const [locationMapVersion, setLocationMapVersion] = useState(0);
@@ -150,6 +158,7 @@ export default function ReportPage() {
   const [localEvidencePreviewUrl, setLocalEvidencePreviewUrl] = useState<string>();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const evidenceInputRef = useRef<HTMLInputElement>(null);
+  const maxReportDate = localDateValue(new Date());
 
   useEffect(() => {
     return () => {
@@ -203,6 +212,7 @@ export default function ReportPage() {
     }
     if (currentStep === 2) {
       if (!draft.date) nextErrors.date = t('errorRequired');
+      else if (draft.date > localDateValue(new Date())) nextErrors.date = t('errorFutureDate');
       if (!draft.approximateTime.trim()) nextErrors.approximateTime = t('errorRequired');
       if (!draft.description.trim()) nextErrors.description = t('errorRequired');
       else if (draft.description.trim().length < 15) nextErrors.description = t('errorDescriptionShort');
@@ -226,22 +236,26 @@ export default function ReportPage() {
     setSafetyEscalationAcknowledged(true);
   };
 
-  const handleEvidenceChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const clearEvidenceInput = () => {
+    if (evidenceInputRef.current) evidenceInputRef.current.value = '';
+  };
+
+  const handleEvidenceFile = async (file: File | undefined) => {
     if (!file) return;
 
     if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) {
       setErrors((current) => ({ ...current, evidence: t('errorImageType') }));
-      event.target.value = '';
+      clearEvidenceInput();
       return;
     }
 
     if (file.size > maxEvidenceSize) {
       setErrors((current) => ({ ...current, evidence: t('errorImageSize') }));
-      event.target.value = '';
+      clearEvidenceInput();
       return;
     }
 
+    setIsEvidenceDragActive(false);
     if (localEvidencePreviewUrl) URL.revokeObjectURL(localEvidencePreviewUrl);
     setLocalEvidencePreviewUrl(URL.createObjectURL(file));
     update('evidence', undefined);
@@ -292,8 +306,37 @@ export default function ReportPage() {
       }));
     } finally {
       setIsEvidenceUploading(false);
-      event.target.value = '';
+      clearEvidenceInput();
     }
+  };
+
+  const handleEvidenceChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    void handleEvidenceFile(event.currentTarget.files?.[0]);
+  };
+
+  const handleEvidenceDragEnter = (event: React.DragEvent<HTMLDivElement>) => {
+    if (isEvidenceUploading || !Array.from(event.dataTransfer.types).includes('Files')) return;
+    event.preventDefault();
+    setIsEvidenceDragActive(true);
+  };
+
+  const handleEvidenceDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    if (isEvidenceUploading || !Array.from(event.dataTransfer.types).includes('Files')) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+    setIsEvidenceDragActive(true);
+  };
+
+  const handleEvidenceDragLeave = (event: React.DragEvent<HTMLDivElement>) => {
+    if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+    setIsEvidenceDragActive(false);
+  };
+
+  const handleEvidenceDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsEvidenceDragActive(false);
+    if (isEvidenceUploading) return;
+    void handleEvidenceFile(event.dataTransfer.files?.[0]);
   };
 
   const removeEvidence = () => {
@@ -499,8 +542,8 @@ export default function ReportPage() {
                     <div className="field-grid two">
                       <div className={`field ${errors.date ? 'has-error' : ''}`}>
                         <FieldLabel>{t('dateLabel')}</FieldLabel>
-                        <input type="date" value={draft.date} onChange={(event) => update('date', event.target.value)} aria-invalid={Boolean(errors.date)} data-testid="input-date" />
-                        {errors.date && <span className="error-text" role="alert">{errors.date}</span>}
+                        <input type="date" max={maxReportDate} value={draft.date} onChange={(event) => update('date', event.target.value)} aria-invalid={Boolean(errors.date)} aria-describedby={errors.date ? 'date-error' : undefined} data-testid="input-date" />
+                        {errors.date && <span id="date-error" className="error-text" role="alert">{errors.date}</span>}
                       </div>
                       <div className={`field ${errors.approximateTime ? 'has-error' : ''}`}>
                         <FieldLabel>{t('timeLabel')}</FieldLabel>
@@ -546,19 +589,29 @@ export default function ReportPage() {
                   <h3 className="step-heading" ref={headingRef} tabIndex={-1}>{t('step3Title')}</h3>
                   <p className="step-description">{t('step3Desc')}</p>
                   <div className="field-grid">
-                    <div className={`field ${errors.evidence ? 'has-error' : ''}`}>
+                    <div
+                      className={`field photo-evidence-field ${errors.evidence ? 'has-error' : ''} ${isEvidenceDragActive ? 'is-dragging' : ''}`}
+                      onDragEnter={handleEvidenceDragEnter}
+                      onDragOver={handleEvidenceDragOver}
+                      onDragLeave={handleEvidenceDragLeave}
+                      onDrop={handleEvidenceDrop}
+                      role="group"
+                      aria-label={t('photoLabel')}
+                      data-testid="photo-dropzone"
+                    >
                       <FieldLabel optional>{t('photoLabel')}</FieldLabel>
-                       <span className="hint">{t('photoHint')}</span>
+                      <span className="hint">{t('photoHint')}</span>
+                      <span className="hint">{t('photoDropHint')}</span>
                       <button
                         type="button"
                         className="evidence-picker"
                         onClick={() => evidenceInputRef.current?.click()}
-                         disabled={isEvidenceUploading}
-                         aria-busy={isEvidenceUploading}
+                        disabled={isEvidenceUploading}
+                        aria-busy={isEvidenceUploading}
                         data-testid="button-add-evidence"
                       >
                         <ImagePlus size={18} />
-                         <span>{isEvidenceUploading ? t('uploadingPhoto') : draft.evidence ? t('replacePhoto') : t('choosePhoto')}</span>
+                        <span>{isEvidenceUploading ? t('uploadingPhoto') : draft.evidence ? t('replacePhoto') : t('choosePhoto')}</span>
                       </button>
                       <input
                         ref={evidenceInputRef}

@@ -350,7 +350,9 @@ async function waitForPinAtMapCenter(page) {
 }
 
 async function fillStepTwo(page) {
-  await page.getByTestId("input-date").fill("2026-09-27");
+  await page
+    .getByTestId("input-date")
+    .fill(await browserLocalDate(page));
   await page.getByTestId("input-approximate-time").fill("Around noon");
   await page
     .getByTestId("input-description")
@@ -358,6 +360,17 @@ async function fillStepTwo(page) {
   await page.getByTestId("select-frequency").selectOption("One time");
   await page.getByTestId("button-continue").click();
   await page.getByTestId("button-submit-report").waitFor({ state: "visible" });
+}
+
+async function browserLocalDate(page, daysFromToday = 0) {
+  return page.evaluate((days) => {
+    const date = new Date();
+    date.setDate(date.getDate() + days);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }, daysFromToday);
 }
 
 test("a visible draggable pin supports pin-only submission with coordinates intact", async () => {
@@ -660,6 +673,112 @@ test("street address search moves the pin and allows Step 1 to continue", async 
 
     await page.getByTestId("button-continue").click();
     await page.getByTestId("input-date").waitFor({ state: "visible" });
+  } finally {
+    await page.close();
+  }
+});
+
+test("future notice dates are rejected while today's date remains valid", async () => {
+  const page = await openReport();
+  try {
+    await page.getByTestId("button-issue-potholes").click();
+    await dragPin(page);
+    await page.getByTestId("button-continue").click();
+
+    const dateInput = page.getByTestId("input-date");
+    const today = await browserLocalDate(page);
+    const tomorrow = await browserLocalDate(page, 1);
+    assert.equal(await dateInput.getAttribute("max"), today);
+
+    await dateInput.fill(tomorrow);
+    await page.getByTestId("input-approximate-time").fill("Around noon");
+    await page
+      .getByTestId("input-description")
+      .fill("A large pothole has formed beside the curb.");
+    await page.getByTestId("select-frequency").selectOption("One time");
+    await page.getByTestId("button-continue").click();
+
+    assert.equal(await dateInput.getAttribute("aria-invalid"), "true");
+    assert.equal(await page.locator("#date-error").innerText(), "Choose today or an earlier date.");
+    assert.equal(await page.getByTestId("input-description").isVisible(), true);
+
+    await dateInput.fill(today);
+    await page.getByTestId("button-continue").click();
+    await page.getByTestId("button-submit-report").waitFor({ state: "visible" });
+  } finally {
+    await page.close();
+  }
+});
+
+test("residents can drop a photo onto the photo evidence field", async () => {
+  const page = await openReport();
+  try {
+    await page.getByTestId("button-issue-potholes").click();
+    await dragPin(page);
+    await page.getByTestId("button-continue").click();
+    await fillStepTwo(page);
+
+    await page.route("**/api/storage/evidence**", async (route) => {
+      if (route.request().method() === "POST") {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            objectPath: "/objects/evidence/123e4567-e89b-12d3-a456-426614174000",
+            contentType: "image/png",
+            size: blankTile.length,
+            previewToken: "browser-test-preview",
+          }),
+        });
+        return;
+      }
+      await route.fulfill({ status: 200, contentType: "image/png", body: blankTile });
+    });
+
+    const addPhotoButton = page.getByTestId("button-add-evidence");
+    assert.equal(await addPhotoButton.innerText(), "Choose a photo");
+    assert.equal(await page.getByText("Or drop a photo here.").isVisible(), true);
+
+    const dropzone = page.getByTestId("photo-dropzone");
+    await dropzone.evaluate((element) => {
+      const transfer = new DataTransfer();
+      const binary = atob(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+cKJkAAAAASUVORK5CYII=",
+      );
+      const bytes = Uint8Array.from(binary, (character) => character.charCodeAt(0));
+      transfer.items.add(new File([bytes], "curb-photo.png", { type: "image/png" }));
+      window.reportPhotoTransfer = transfer;
+      element.dispatchEvent(new DragEvent("dragenter", {
+        bubbles: true,
+        cancelable: true,
+        dataTransfer: transfer,
+      }));
+      element.dispatchEvent(new DragEvent("dragover", {
+        bubbles: true,
+        cancelable: true,
+        dataTransfer: transfer,
+      }));
+    });
+    await page.waitForFunction(() =>
+      document.querySelector('[data-testid="photo-dropzone"]')?.classList.contains("is-dragging"),
+    );
+
+    await dropzone.evaluate((element) => {
+      element.dispatchEvent(new DragEvent("drop", {
+        bubbles: true,
+        cancelable: true,
+        dataTransfer: window.reportPhotoTransfer,
+      }));
+    });
+    await page.waitForFunction((key) => {
+      const draft = JSON.parse(localStorage.getItem(key) ?? "{}");
+      return draft.evidence?.name === "curb-photo.png";
+    }, draftStorageKey);
+
+    const draft = await readDraft(page);
+    assert.equal(draft.evidence.type, "image/png");
+    assert.equal(draft.evidence.objectPath, "/objects/evidence/123e4567-e89b-12d3-a456-426614174000");
+    assert.equal(await addPhotoButton.innerText(), "Replace photo");
   } finally {
     await page.close();
   }
