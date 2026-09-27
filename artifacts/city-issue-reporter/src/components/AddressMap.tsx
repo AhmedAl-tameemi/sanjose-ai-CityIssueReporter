@@ -92,6 +92,10 @@ export default function AddressMap({ draft, error, onPatch, onError, onSearching
       zoomControl: true,
     });
     map.current = instance;
+    const resizeObserver = new ResizeObserver(() => {
+      instance.invalidateSize({ pan: false });
+    });
+    resizeObserver.observe(element.current);
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 19,
@@ -139,6 +143,7 @@ export default function AddressMap({ draft, error, onPatch, onError, onSearching
       lookupController.current = null;
       marker.current = null;
       map.current = null;
+      resizeObserver.disconnect();
       instance.remove();
       onSearching(false);
     };

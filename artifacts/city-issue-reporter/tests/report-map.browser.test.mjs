@@ -458,6 +458,77 @@ test("touchscreen residents can move the pin and submit without an address", asy
   }
 });
 
+test("phone landscape residents can use the map and keep pin coordinates through submission", async () => {
+  const page = await openReport({
+    device: {
+      viewport: { width: 844, height: 390 },
+      isMobile: true,
+      hasTouch: true,
+      deviceScaleFactor: 1,
+    },
+  });
+  try {
+    assert.deepEqual(
+      await page.evaluate(() => ({
+        width: window.innerWidth,
+        height: window.innerHeight,
+        hasTouch: navigator.maxTouchPoints > 0 || "ontouchstart" in window,
+      })),
+      { width: 844, height: 390, hasTouch: true },
+    );
+
+    await page.getByTestId("button-issue-potholes").click();
+    const map = page.getByTestId("map-location");
+    await map.scrollIntoViewIfNeeded();
+
+    const mapBounds = await map.boundingBox();
+    assert.ok(mapBounds, "The landscape map should have a visible browser bounding box");
+    assert.ok(mapBounds.height <= 175, "The map should use the compact landscape height");
+
+    for (const control of [".leaflet-control-zoom-in", ".leaflet-control-zoom-out"]) {
+      const controlBounds = await page.locator(control).boundingBox();
+      assert.ok(controlBounds, `${control} should have a visible browser bounding box`);
+      assert.ok(controlBounds.x >= mapBounds.x);
+      assert.ok(controlBounds.y >= mapBounds.y);
+      assert.ok(controlBounds.x + controlBounds.width <= mapBounds.x + mapBounds.width);
+      assert.ok(controlBounds.y + controlBounds.height <= mapBounds.y + mapBounds.height);
+      assert.ok(controlBounds.y >= 0 && controlBounds.y + controlBounds.height <= 390);
+      await page.locator(control).click();
+    }
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await waitForPinAtMapCenter(page);
+    await page.setViewportSize({ width: 844, height: 390 });
+    await waitForPinAtMapCenter(page);
+    await map.scrollIntoViewIfNeeded();
+
+    const selectedPoint = await dragPinWithTouch(page);
+    assert.ok(selectedPoint.location.startsWith("Dropped map pin"));
+    assert.equal(selectedPoint.searchedAddress, "");
+    assert.notDeepEqual(
+      { lat: selectedPoint.pinLatitude, lng: selectedPoint.pinLongitude },
+      initialPoint,
+    );
+
+    await page.getByTestId("button-continue").click();
+    await page.getByTestId("input-date").waitFor({ state: "visible" });
+    const continuedDraft = await readDraft(page);
+    assert.equal(continuedDraft.pinLatitude, selectedPoint.pinLatitude);
+    assert.equal(continuedDraft.pinLongitude, selectedPoint.pinLongitude);
+
+    await fillStepTwo(page);
+    await page.getByTestId("button-submit-report").click();
+    await page.locator(".confirmation-card").waitFor({ state: "visible" });
+
+    const report = await readSavedReport(page);
+    assert.equal(report.searchedAddress, "");
+    assert.equal(report.pinLatitude, selectedPoint.pinLatitude);
+    assert.equal(report.pinLongitude, selectedPoint.pinLongitude);
+  } finally {
+    await page.close();
+  }
+});
+
 test("iPhone Safari residents can move the pin and submit without an address", async () => {
   const page = await openReport({
     browserInstance: webkitBrowser,

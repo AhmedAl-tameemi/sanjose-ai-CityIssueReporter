@@ -488,6 +488,17 @@
   .review-row { grid-template-columns: 1fr; gap: 4px; }
 }
 
+@media (orientation: landscape) and (max-height: 500px) {
+  .site-header { padding-block: 10px; }
+  .intro { display: none; }
+  .home-grid { grid-template-columns: minmax(0, 1fr); gap: 0; padding: 10px 0 24px; }
+  .form-header { padding: 17px 24px 15px; }
+  .form-body { padding-block: 18px; }
+  .step-description { margin-bottom: 18px; }
+  .address-map { height: clamp(130px, 38vh, 175px); }
+  .form-footer { padding-block: 13px 16px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
