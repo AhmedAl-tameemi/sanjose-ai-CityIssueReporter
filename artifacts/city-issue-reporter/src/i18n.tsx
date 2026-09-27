@@ -27,7 +27,7 @@ export type LanguageCode = (typeof languages)[number]['code'];
 export type Direction = (typeof languages)[number]['dir'];
 
 const rows = {
-  brandName: ["City Issue Reporter","بوابة الإبلاغ عن مشكلات المدينة","城市问题报告","城市問題回報","Tagapag-ulat ng Isyu sa Lungsod","शहर समस्या रिपोर्टर","市の問題報告","도시 문제 신고","سامانه گزارش مشکلات شهری","Relator de Problemas da Cidade","Сообщить о городской проблеме","Reporte de Problemas de la Ciudad","Báo cáo Vấn đề Thành phố"],
+  brandName: ["TrafficSignal","TrafficSignal","TrafficSignal","TrafficSignal","TrafficSignal","TrafficSignal","TrafficSignal","TrafficSignal","TrafficSignal","TrafficSignal","TrafficSignal","TrafficSignal","TrafficSignal"],
   headerNote: ["A clearer way to care for our streets","طريقة أوضح للعناية بشوارعنا","更清晰地关心我们的街道","更清楚地關心我們的街道","Mas malinaw na paraan para alagaan ang ating mga kalsada","हमारी सड़कों की देखभाल का आसान तरीका","地域の道路を守る、わかりやすい方法","우리 거리를 돌보는 더 쉬운 방법","راهی روشن‌تر برای مراقبت از خیابان‌ها","Uma forma mais clara de cuidar das nossas ruas","Понятный способ заботиться о наших улицах","Una forma más clara de cuidar nuestras calles","Cách rõ ràng hơn để chăm sóc đường phố"],
   languageLabel: ["Language","اللغة","语言","語言","Wika","भाषा","言語","언어","زبان","Idioma","Язык","Idioma","Ngôn ngữ"],
   eyebrow: ["Your neighborhood, heard","صوت حيّك مسموع","倾听您的社区","傾聽您的社區","Naririnig ang inyong komunidad","आपके पड़ोस की आवाज़","地域の声を届ける","우리 동네의 목소리","صدای محله شما شنیده می‌شود","Seu bairro, ouvido","Ваш район услышан","Tu vecindario, escuchado","Khu phố của bạn được lắng nghe"],

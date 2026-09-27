@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/"
-title = "City Issue Reporter"
+title = "TrafficSignal"
 description = "A welcoming, accessible resident-facing web app for submitting community issue reports and receiving a clear confirmation summary."
 version = "1.0.0"
 id = "artifacts/city-issue-reporter"
