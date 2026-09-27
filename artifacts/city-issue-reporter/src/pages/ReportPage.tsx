@@ -235,13 +235,21 @@ export default function ReportPage() {
     if (currentStep === 1) {
       if (!draft.issueType) nextErrors.issueType = t('errorIssue');
       if (!draft.location.trim()) nextErrors.location = t('errorRequired');
-      else if (
-        isSearchingLocation ||
-        !draft.searchedAddress ||
-        draft.location !== draft.searchedAddress ||
-        !Number.isFinite(draft.pinLatitude) ||
-        !Number.isFinite(draft.pinLongitude)
-      ) nextErrors.location = t('addressSearchRequired');
+      else {
+        const hasCoordinates =
+          Number.isFinite(draft.pinLatitude) &&
+          Number.isFinite(draft.pinLongitude) &&
+          Math.abs(draft.pinLatitude!) <= 90 &&
+          Math.abs(draft.pinLongitude!) <= 180;
+        const hasDroppedPin = hasCoordinates && !draft.searchedAddress;
+        const hasValidatedAddress =
+          hasCoordinates &&
+          Boolean(draft.searchedAddress) &&
+          draft.location === draft.searchedAddress;
+        if (isSearchingLocation || (!hasDroppedPin && !hasValidatedAddress)) {
+          nextErrors.location = t('addressSearchRequired');
+        }
+      }
     }
     if (currentStep === 2) {
       if (!draft.date) nextErrors.date = t('errorRequired');

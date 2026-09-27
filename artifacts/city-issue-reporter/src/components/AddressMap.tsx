@@ -66,6 +66,7 @@ type Props = {
 
 export default function AddressMap({ draft, error, onPatch, onError, onSearching }: Props) {
   const { t } = useLanguage();
+  const translateRef = useRef(t);
   const element = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
   const marker = useRef<L.Marker | null>(null);
@@ -73,6 +74,7 @@ export default function AddressMap({ draft, error, onPatch, onError, onSearching
   const draftRef = useRef(draft);
   const patchRef = useRef(onPatch);
   const [searching, setSearching] = useState(false);
+  translateRef.current = t;
   draftRef.current = draft;
   patchRef.current = onPatch;
 
@@ -102,7 +104,15 @@ export default function AddressMap({ draft, error, onPatch, onError, onSearching
       const controller = new AbortController();
       lookupController.current = controller;
       // Always save the actual pin location, even when reverse lookup fails.
-      patchRef.current({ pinLatitude: pin.lat, pinLongitude: pin.lng });
+      patchRef.current({
+        location: translateRef.current('mapPinLocation', {
+          latitude: pin.lat.toFixed(5),
+          longitude: pin.lng.toFixed(5),
+        }),
+        searchedAddress: '',
+        pinLatitude: pin.lat,
+        pinLongitude: pin.lng,
+      });
       try {
         const result = await lookup(
           `/reverse?format=jsonv2&addressdetails=1&zoom=18&lat=${pin.lat}&lon=${pin.lng}`,
@@ -119,7 +129,7 @@ export default function AddressMap({ draft, error, onPatch, onError, onSearching
       pin.on('dragend', onDrag);
       marker.current = pin;
     };
-    if (hasPin) createMarker(point, Boolean(saved.searchedAddress && saved.location === saved.searchedAddress));
+    createMarker(point, true);
     // Leaflet must measure the mounted map container after layout.
     requestAnimationFrame(() => { if (active) instance.invalidateSize(); });
     return () => {
@@ -137,8 +147,7 @@ export default function AddressMap({ draft, error, onPatch, onError, onSearching
     lookupController.current?.abort();
     setSearching(false);
     onSearching(false);
-    marker.current?.dragging?.disable();
-    onPatch({ location: value, searchedAddress: '' });
+    onPatch({ location: value, searchedAddress: '', pinLatitude: undefined, pinLongitude: undefined });
     onError(undefined);
   };
 
@@ -207,6 +216,7 @@ export default function AddressMap({ draft, error, onPatch, onError, onSearching
       if (!controller.signal.aborted) onError(t('mapUnavailable'));
     } finally {
       if (!controller.signal.aborted) {
+        marker.current?.dragging?.enable();
         setSearching(false);
         onSearching(false);
       }
