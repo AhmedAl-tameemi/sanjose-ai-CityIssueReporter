@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { fetchResidentEvidenceBlob } from "../reportStorage";
 
 export function useResidentEvidencePreview(
   objectPath: string | undefined,
@@ -15,17 +16,9 @@ export function useResidentEvidencePreview(
       return () => undefined;
     }
 
-    fetch(`/api/storage${objectPath}`, {
-      headers: { "X-Resident-Preview-Token": previewToken },
-    })
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error("The secured image preview could not be loaded.");
-        }
-        return response.blob();
-      })
+    fetchResidentEvidenceBlob({ objectPath, previewToken })
       .then((blob) => {
-        if (cancelled) return;
+        if (cancelled || !blob) return;
         objectUrl = URL.createObjectURL(blob);
         setPreviewUrl(objectUrl);
       })

@@ -2,12 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Check, Clipboard, ImageIcon, MapPin, RotateCcw } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import {
-  isEvidenceObjectPath,
-  isEvidencePreviewToken,
-  type Report,
-} from '../types/report';
+  readReport,
+} from '../reportStorage';
 import { useResidentEvidencePreview } from '../lib/evidencePreview';
-import { reportStorageKey } from './ReportPage';
 import {
   frequencyTranslationKeys,
   issueTranslationKeys,
@@ -17,42 +14,7 @@ import {
 export default function ConfirmationPage() {
   const { language, direction, setLanguage, t } = useLanguage();
   const [, setLocation] = useLocation();
-  const [report, setReport] = useState<Report | null>(() => {
-    try {
-      const saved = window.localStorage.getItem(reportStorageKey);
-      if (!saved) return null;
-      const parsed = JSON.parse(saved) as Report & {
-        evidence?: {
-          name?: unknown;
-          type?: unknown;
-          size?: unknown;
-          objectPath?: unknown;
-          previewToken?: unknown;
-        };
-      };
-      const storedEvidence = parsed.evidence;
-      return {
-        ...parsed,
-        evidence:
-          storedEvidence &&
-          typeof storedEvidence.name === 'string' &&
-          typeof storedEvidence.type === 'string' &&
-          typeof storedEvidence.size === 'number' &&
-          isEvidenceObjectPath(storedEvidence.objectPath) &&
-          isEvidencePreviewToken(storedEvidence.previewToken)
-            ? {
-                name: storedEvidence.name,
-                type: storedEvidence.type,
-                size: storedEvidence.size,
-                objectPath: storedEvidence.objectPath,
-                previewToken: storedEvidence.previewToken,
-              }
-            : undefined,
-      };
-    } catch {
-      return null;
-    }
-  });
+  const [report] = useState(readReport);
   const [copied, setCopied] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
 

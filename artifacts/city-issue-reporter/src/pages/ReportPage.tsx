@@ -31,6 +31,7 @@ import {
   type Report,
   type ReportDraft,
 } from '../types/report';
+import { readDraft, removeDraft, saveDraft, saveReport } from '../reportStorage';
 import {
   frequencyTranslationKeys,
   issueTranslationKeys,
@@ -42,8 +43,6 @@ import { useResidentEvidencePreview } from '../lib/evidencePreview';
 
 type FieldErrors = Partial<Record<keyof ReportDraft, string>>;
 
-const draftStorageKey = 'city-issue-reporter-draft-v2';
-const reportStorageKey = 'city-issue-reporter-last-report';
 const maxEvidenceSize = 3 * 1024 * 1024;
 
 const issueIcons: Record<IssueType, typeof CarFront> = {
@@ -54,55 +53,6 @@ const issueIcons: Record<IssueType, typeof CarFront> = {
   'Streetlight problems': Lightbulb,
   Other: CircleHelp,
 };
-
-function readDraft(): ReportDraft {
-  try {
-    const saved = window.localStorage.getItem(draftStorageKey);
-    if (!saved) return blankDraft;
-    const parsed = JSON.parse(saved) as Partial<ReportDraft> & {
-      evidence?: {
-        name?: unknown;
-        type?: unknown;
-        size?: unknown;
-        objectPath?: unknown;
-        previewToken?: unknown;
-      };
-    };
-    const storedEvidence = parsed.evidence;
-    const evidence =
-      storedEvidence &&
-      typeof storedEvidence.name === 'string' &&
-      typeof storedEvidence.type === 'string' &&
-      typeof storedEvidence.size === 'number' &&
-      isEvidenceObjectPath(storedEvidence.objectPath) &&
-      isEvidencePreviewToken(storedEvidence.previewToken)
-        ? {
-            name: storedEvidence.name,
-            type: storedEvidence.type,
-            size: storedEvidence.size,
-            objectPath: storedEvidence.objectPath,
-            previewToken: storedEvidence.previewToken,
-          }
-        : undefined;
-    const hasCoordinates =
-      typeof parsed.pinLatitude === 'number' &&
-      Number.isFinite(parsed.pinLatitude) &&
-      Math.abs(parsed.pinLatitude) <= 90 &&
-      typeof parsed.pinLongitude === 'number' &&
-      Number.isFinite(parsed.pinLongitude) &&
-      Math.abs(parsed.pinLongitude) <= 180;
-    return {
-      ...blankDraft,
-      ...parsed,
-      evidence,
-      searchedAddress: hasCoordinates && typeof parsed.searchedAddress === 'string' ? parsed.searchedAddress : '',
-      pinLatitude: hasCoordinates ? parsed.pinLatitude : undefined,
-      pinLongitude: hasCoordinates ? parsed.pinLongitude : undefined,
-    };
-  } catch {
-    return blankDraft;
-  }
-}
 
 function FieldLabel({ children, optional }: { children: string; optional?: boolean }) {
   const { t } = useLanguage();
@@ -208,7 +158,7 @@ export default function ReportPage() {
   }, [localEvidencePreviewUrl]);
 
   useEffect(() => {
-    window.localStorage.setItem(draftStorageKey, JSON.stringify(draft));
+    saveDraft(draft);
   }, [draft]);
 
   useEffect(() => {
@@ -405,8 +355,7 @@ export default function ReportPage() {
       englishTranslation,
       translationStatus,
     };
-    window.localStorage.setItem(reportStorageKey, JSON.stringify(report));
-    window.localStorage.removeItem(draftStorageKey);
+    saveReport(report);
     setLocation('/confirmation');
   };
 
@@ -418,7 +367,7 @@ export default function ReportPage() {
       setIsSearchingLocation(false);
       setLocationMapVersion((version) => version + 1);
       setSafetyEscalationAcknowledged(false);
-      window.localStorage.removeItem(draftStorageKey);
+      removeDraft();
     }
   };
 
@@ -427,7 +376,7 @@ export default function ReportPage() {
       setErrors((current) => ({ ...current, evidence: t('errorUploadWait') }));
       return;
     }
-    window.localStorage.setItem(draftStorageKey, JSON.stringify(draft));
+    saveDraft(draft);
     setIsSaved(true);
   };
 
@@ -687,5 +636,3 @@ export default function ReportPage() {
     </div>
   );
 }
-
-export { reportStorageKey };

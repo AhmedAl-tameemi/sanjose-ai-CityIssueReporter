@@ -17,16 +17,15 @@ import {
   ObjectNotFoundError,
   ObjectStorageService,
 } from "../lib/objectStorage";
+import {
+  getEvidenceContentType,
+  maxEvidenceSize,
+  validateEvidenceBytes,
+  validateEvidenceHeaders as validateEvidenceRequestHeaders,
+} from "../lib/evidenceValidation";
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
-const maxEvidenceSize = 3 * 1024 * 1024;
-const allowedContentTypes = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-]);
 
 const parseEvidenceBody = express.raw({
   type: "*/*",
@@ -38,17 +37,13 @@ function validateEvidenceHeaders(
   res: Response,
   next: NextFunction,
 ) {
-  const contentType = getContentType(req);
-  if (!contentType || !allowedContentTypes.has(contentType)) {
-    res.status(415).json({
-      error: "Only JPEG, PNG, WebP, and GIF images are supported.",
-    });
-    return;
-  }
-
-  const contentLength = Number(req.headers["content-length"]);
-  if (Number.isFinite(contentLength) && contentLength > maxEvidenceSize) {
-    res.status(413).json({ error: "Images must be 3 MB or smaller." });
+  const contentType = getEvidenceContentType(req.headers["content-type"]);
+  const headerError = validateEvidenceRequestHeaders(
+    contentType,
+    req.headers["content-length"],
+  );
+  if (headerError) {
+    res.status(headerError.status).json({ error: headerError.message });
     return;
   }
 
@@ -69,23 +64,20 @@ router.post(
   "/storage/evidence",
   validateEvidenceHeaders,
   async (req: Request, res: Response) => {
-    const contentType = getContentType(req);
+    const contentType = getEvidenceContentType(req.headers["content-type"]);
     const bytes = Buffer.isBuffer(req.body) ? req.body : null;
 
-    if (!bytes || bytes.length === 0) {
-      res.status(400).json({ error: "An image file is required." });
-      return;
-    }
-    if (bytes.length > maxEvidenceSize) {
-      res.status(413).json({ error: "Images must be 3 MB or smaller." });
-      return;
-    }
-    if (!contentType || detectImageType(bytes) !== contentType) {
-      res.status(400).json({ error: "The uploaded file is not a valid image." });
+    const bodyError = validateEvidenceBytes(contentType, bytes ?? Buffer.alloc(0));
+    if (bodyError) {
+      res.status(bodyError.status).json({ error: bodyError.message });
       return;
     }
 
     try {
+      if (!bytes || !contentType) {
+        res.status(400).json({ error: "An image file is required." });
+        return;
+      }
       const stored = await objectStorageService.storeEvidence(bytes, contentType);
       res.status(201).json(
         UploadEvidenceResponse.parse({
@@ -138,44 +130,5 @@ router.get(
     }
   },
 );
-
-function getContentType(req: Request): string | null {
-  const value = req.headers["content-type"];
-  return typeof value === "string" ? value.split(";")[0].trim().toLowerCase() : null;
-}
-
-function detectImageType(bytes: Buffer): string | null {
-  if (
-    bytes.length >= 3 &&
-    bytes[0] === 0xff &&
-    bytes[1] === 0xd8 &&
-    bytes[2] === 0xff
-  ) {
-    return "image/jpeg";
-  }
-  if (
-    bytes.length >= 8 &&
-    bytes.subarray(0, 8).equals(
-      Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
-    )
-  ) {
-    return "image/png";
-  }
-  if (
-    bytes.length >= 6 &&
-    (bytes.subarray(0, 6).toString("ascii") === "GIF87a" ||
-      bytes.subarray(0, 6).toString("ascii") === "GIF89a")
-  ) {
-    return "image/gif";
-  }
-  if (
-    bytes.length >= 12 &&
-    bytes.subarray(0, 4).toString("ascii") === "RIFF" &&
-    bytes.subarray(8, 12).toString("ascii") === "WEBP"
-  ) {
-    return "image/webp";
-  }
-  return null;
-}
 
 export default router;
