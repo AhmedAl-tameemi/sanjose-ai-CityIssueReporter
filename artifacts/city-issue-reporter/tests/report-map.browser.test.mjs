@@ -103,8 +103,12 @@ after(async () => {
   }
 });
 
-async function openReport() {
-  const page = await browser.newPage({ viewport: { width: 1440, height: 1200 } });
+async function openReport({ touchEnabled = false } = {}) {
+  const page = await browser.newPage({
+    viewport: touchEnabled ? { width: 390, height: 844 } : { width: 1440, height: 1200 },
+    isMobile: touchEnabled,
+    hasTouch: touchEnabled,
+  });
   await page.route("https://tile.openstreetmap.org/**", (route) =>
     route.fulfill({ status: 200, contentType: "image/png", body: blankTile }),
   );
@@ -144,6 +148,50 @@ async function dragPin(page) {
     { steps: 10 },
   );
   await page.mouse.up();
+  await waitForDroppedPin(page);
+  return readDraft(page);
+}
+
+async function dragPinWithTouch(page) {
+  const pin = page.getByTestId("map-pin");
+  await pin.scrollIntoViewIfNeeded();
+  const bounds = await pin.boundingBox();
+  assert.ok(bounds, "The map pin should have a visible browser bounding box");
+  const startX = bounds.x + bounds.width / 2;
+  const startY = bounds.y + bounds.height / 2;
+  const client = await page.context().newCDPSession(page);
+
+  try {
+    await client.send("Input.dispatchTouchEvent", {
+      type: "touchStart",
+      touchPoints: [{ id: 1, x: startX, y: startY }],
+    });
+    for (let step = 1; step <= 10; step += 1) {
+      await client.send("Input.dispatchTouchEvent", {
+        type: "touchMove",
+        touchPoints: [
+          {
+            id: 1,
+            x: startX + (78 * step) / 10,
+            y: startY + (46 * step) / 10,
+          },
+        ],
+      });
+      await delay(16);
+    }
+  } finally {
+    await client.send("Input.dispatchTouchEvent", {
+      type: "touchEnd",
+      touchPoints: [],
+    });
+    await client.detach();
+  }
+
+  await waitForDroppedPin(page);
+  return readDraft(page);
+}
+
+async function waitForDroppedPin(page) {
   await page.waitForFunction(
     (key) => {
       const draft = JSON.parse(localStorage.getItem(key) ?? "{}");
@@ -156,7 +204,6 @@ async function dragPin(page) {
     },
     draftStorageKey,
   );
-  return readDraft(page);
 }
 
 async function readDraft(page) {
@@ -220,6 +267,41 @@ test("a visible draggable pin supports pin-only submission with coordinates inta
     );
 
     await page.getByTestId("button-continue").click();
+    await fillStepTwo(page);
+    await page.getByTestId("button-submit-report").click();
+    await page.locator(".confirmation-card").waitFor({ state: "visible" });
+
+    const report = await readSavedReport(page);
+    assert.equal(report.searchedAddress, "");
+    assert.equal(report.pinLatitude, selectedPoint.pinLatitude);
+    assert.equal(report.pinLongitude, selectedPoint.pinLongitude);
+  } finally {
+    await page.close();
+  }
+});
+
+test("touchscreen residents can move the pin and submit without an address", async () => {
+  const page = await openReport({ touchEnabled: true });
+  try {
+    assert.deepEqual(
+      await page.evaluate(() => ({
+        width: window.innerWidth,
+        hasTouch: navigator.maxTouchPoints > 0 || "ontouchstart" in window,
+      })),
+      { width: 390, hasTouch: true },
+    );
+
+    await page.getByTestId("button-issue-potholes").click();
+    const selectedPoint = await dragPinWithTouch(page);
+    assert.ok(selectedPoint.location.startsWith("Dropped map pin"));
+    assert.equal(selectedPoint.searchedAddress, "");
+    assert.notDeepEqual(
+      { lat: selectedPoint.pinLatitude, lng: selectedPoint.pinLongitude },
+      initialPoint,
+    );
+
+    await page.getByTestId("button-continue").click();
+    await page.getByTestId("input-date").waitFor({ state: "visible" });
     await fillStepTwo(page);
     await page.getByTestId("button-submit-report").click();
     await page.locator(".confirmation-card").waitFor({ state: "visible" });
