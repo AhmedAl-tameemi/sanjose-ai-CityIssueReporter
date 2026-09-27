@@ -103,7 +103,7 @@ after(async () => {
   }
 });
 
-async function openReport({ touchEnabled = false } = {}) {
+async function openReport({ touchEnabled = false, reverseLookupFails = false } = {}) {
   const page = await browser.newPage({
     viewport: touchEnabled ? { width: 390, height: 844 } : { width: 1440, height: 1200 },
     isMobile: touchEnabled,
@@ -114,6 +114,10 @@ async function openReport({ touchEnabled = false } = {}) {
   );
   await page.route("https://nominatim.openstreetmap.org/**", async (route) => {
     const url = new URL(route.request().url());
+    if (reverseLookupFails && url.pathname.endsWith("/reverse")) {
+      await route.abort("failed");
+      return;
+    }
     const result = url.pathname.endsWith("/search")
       ? [
           {
@@ -272,6 +276,40 @@ test("a visible draggable pin supports pin-only submission with coordinates inta
     await page.locator(".confirmation-card").waitFor({ state: "visible" });
 
     const report = await readSavedReport(page);
+    assert.equal(report.searchedAddress, "");
+    assert.equal(report.pinLatitude, selectedPoint.pinLatitude);
+    assert.equal(report.pinLongitude, selectedPoint.pinLongitude);
+  } finally {
+    await page.close();
+  }
+});
+
+test("a failed reverse lookup preserves a dropped pin through report submission", async () => {
+  const page = await openReport({ reverseLookupFails: true });
+  try {
+    await page.getByTestId("button-issue-potholes").click();
+    const failedReverseLookup = page.waitForEvent("requestfailed", {
+      predicate: (request) =>
+        new URL(request.url()).pathname.endsWith("/reverse"),
+    });
+    const selectedPoint = await dragPin(page);
+    await failedReverseLookup;
+
+    assert.ok(selectedPoint.location.startsWith("Dropped map pin"));
+    assert.equal(selectedPoint.searchedAddress, "");
+    assert.notDeepEqual(
+      { lat: selectedPoint.pinLatitude, lng: selectedPoint.pinLongitude },
+      initialPoint,
+    );
+
+    await page.getByTestId("button-continue").click();
+    await page.getByTestId("input-date").waitFor({ state: "visible" });
+    await fillStepTwo(page);
+    await page.getByTestId("button-submit-report").click();
+    await page.locator(".confirmation-card").waitFor({ state: "visible" });
+
+    const report = await readSavedReport(page);
+    assert.ok(report.location.startsWith("Dropped map pin"));
     assert.equal(report.searchedAddress, "");
     assert.equal(report.pinLatitude, selectedPoint.pinLatitude);
     assert.equal(report.pinLongitude, selectedPoint.pinLongitude);
