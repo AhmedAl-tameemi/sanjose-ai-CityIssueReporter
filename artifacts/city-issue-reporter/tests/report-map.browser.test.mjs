@@ -5,7 +5,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { after, before, test } from "node:test";
-import { chromium } from "playwright-core";
+import { chromium, devices, webkit } from "playwright-core";
 
 const reporterDirectory = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const draftStorageKey = "city-issue-reporter-draft-v2";
@@ -19,6 +19,7 @@ const blankTile = Buffer.from(
 );
 
 let browser;
+let webkitBrowser;
 let server;
 let baseUrl;
 let serverOutput = "";
@@ -90,10 +91,51 @@ before(async () => {
     headless: true,
     args: ["--no-sandbox", "--disable-dev-shm-usage"],
   });
+
+  const originalLibraryPath = process.env.LD_LIBRARY_PATH;
+  const webkitExecutablePath = process.env.WEBKIT_PATH ?? webkit.executablePath();
+  const webkitLibraryPaths = [originalLibraryPath, process.env.REPLIT_LD_LIBRARY_PATH];
+  if (process.env.WEBKIT_EXTRA_LIBRARY_PATH) {
+    webkitLibraryPaths.push(process.env.WEBKIT_EXTRA_LIBRARY_PATH);
+  }
+  if (process.env.REPLIT_LD_LIBRARY_PATH) {
+    try {
+      const atomicLibrary = execFileSync("gcc", ["-print-file-name=libatomic.so.1"], {
+        encoding: "utf8",
+      }).trim();
+      if (atomicLibrary !== "libatomic.so.1") {
+        webkitLibraryPaths.push(resolve(atomicLibrary, ".."));
+      }
+    } catch {
+      // Some Replit environments already expose libatomic in their library path.
+    }
+  }
+  if (process.env.REPLIT_LD_LIBRARY_PATH) {
+    process.env.LD_LIBRARY_PATH = webkitLibraryPaths.filter(Boolean).join(":");
+  }
+  try {
+    webkitBrowser = await webkit.launch({
+      executablePath: process.env.REPLIT_LD_LIBRARY_PATH
+        ? resolve(reporterDirectory, "tests/webkit-launcher.sh")
+        : webkitExecutablePath,
+      env: {
+        ...process.env,
+        PLAYWRIGHT_WEBKIT_EXECUTABLE: webkitExecutablePath,
+      },
+      headless: true,
+    });
+  } finally {
+    if (originalLibraryPath === undefined) {
+      delete process.env.LD_LIBRARY_PATH;
+    } else {
+      process.env.LD_LIBRARY_PATH = originalLibraryPath;
+    }
+  }
 }, { timeout: 120_000 });
 
 after(async () => {
   await browser?.close();
+  await webkitBrowser?.close();
   if (server && server.exitCode === null) {
     server.kill("SIGTERM");
     await new Promise((resolveExit) => {
@@ -103,12 +145,19 @@ after(async () => {
   }
 });
 
-async function openReport({ touchEnabled = false, reverseLookupFails = false } = {}) {
-  const page = await browser.newPage({
-    viewport: touchEnabled ? { width: 390, height: 844 } : { width: 1440, height: 1200 },
-    isMobile: touchEnabled,
-    hasTouch: touchEnabled,
-  });
+async function openReport({
+  touchEnabled = false,
+  reverseLookupFails = false,
+  browserInstance = browser,
+  device,
+} = {}) {
+  const page = await browserInstance.newPage(
+    device ?? {
+      viewport: touchEnabled ? { width: 390, height: 844 } : { width: 1440, height: 1200 },
+      isMobile: touchEnabled,
+      hasTouch: touchEnabled,
+    },
+  );
   await page.route("https://tile.openstreetmap.org/**", (route) =>
     route.fulfill({ status: 200, contentType: "image/png", body: blankTile }),
   );
@@ -190,6 +239,62 @@ async function dragPinWithTouch(page) {
     });
     await client.detach();
   }
+
+  await waitForDroppedPin(page);
+  return readDraft(page);
+}
+
+async function dragPinWithWebKitTouch(page) {
+  const pin = page.getByTestId("map-pin");
+  await pin.scrollIntoViewIfNeeded();
+  const bounds = await pin.boundingBox();
+  assert.ok(bounds, "The map pin should have a visible browser bounding box");
+  const startX = bounds.x + bounds.width / 2;
+  const startY = bounds.y + bounds.height / 2;
+
+  await page.evaluate(async ({ startX, startY }) => {
+    const target = document.elementFromPoint(startX, startY);
+    if (!target) throw new Error("Could not find the map pin at the touch start point");
+    const makeTouch = (x, y) => document.createTouch(
+      window,
+      target,
+      1,
+      x,
+      y,
+      x,
+      y,
+      x,
+      y,
+      1,
+      1,
+      0,
+      1,
+    );
+    const dispatch = (type, x, y, active) => {
+      const touch = makeTouch(x, y);
+      const activeTouches = active ? document.createTouchList(touch) : document.createTouchList();
+      const event = new TouchEvent(type, {
+        bubbles: true,
+        cancelable: true,
+        touches: activeTouches,
+        targetTouches: activeTouches,
+        changedTouches: document.createTouchList(touch),
+      });
+      target.dispatchEvent(event);
+    };
+
+    dispatch("touchstart", startX, startY, true);
+    for (let step = 1; step <= 10; step += 1) {
+      dispatch(
+        "touchmove",
+        startX + (78 * step) / 10,
+        startY + (46 * step) / 10,
+        true,
+      );
+      await new Promise(requestAnimationFrame);
+    }
+    dispatch("touchend", startX + 78, startY + 46, false);
+  }, { startX, startY });
 
   await waitForDroppedPin(page);
   return readDraft(page);
@@ -328,6 +433,86 @@ test("touchscreen residents can move the pin and submit without an address", asy
       })),
       { width: 390, hasTouch: true },
     );
+
+    await page.getByTestId("button-issue-potholes").click();
+    const selectedPoint = await dragPinWithTouch(page);
+    assert.ok(selectedPoint.location.startsWith("Dropped map pin"));
+    assert.equal(selectedPoint.searchedAddress, "");
+    assert.notDeepEqual(
+      { lat: selectedPoint.pinLatitude, lng: selectedPoint.pinLongitude },
+      initialPoint,
+    );
+
+    await page.getByTestId("button-continue").click();
+    await page.getByTestId("input-date").waitFor({ state: "visible" });
+    await fillStepTwo(page);
+    await page.getByTestId("button-submit-report").click();
+    await page.locator(".confirmation-card").waitFor({ state: "visible" });
+
+    const report = await readSavedReport(page);
+    assert.equal(report.searchedAddress, "");
+    assert.equal(report.pinLatitude, selectedPoint.pinLatitude);
+    assert.equal(report.pinLongitude, selectedPoint.pinLongitude);
+  } finally {
+    await page.close();
+  }
+});
+
+test("iPhone Safari residents can move the pin and submit without an address", async () => {
+  const page = await openReport({
+    browserInstance: webkitBrowser,
+    device: devices["iPhone 15"],
+  });
+  try {
+    const browserContext = await page.evaluate(() => ({
+      width: window.innerWidth,
+      userAgent: navigator.userAgent,
+      hasTouch: navigator.maxTouchPoints > 0 || "ontouchstart" in window,
+    }));
+    assert.equal(browserContext.width, 393);
+    assert.equal(browserContext.hasTouch, true);
+    assert.match(browserContext.userAgent, /iPhone/);
+    assert.match(browserContext.userAgent, /Safari/);
+
+    await page.getByTestId("button-issue-potholes").click();
+    const selectedPoint = await dragPinWithWebKitTouch(page);
+    assert.ok(selectedPoint.location.startsWith("Dropped map pin"));
+    assert.equal(selectedPoint.searchedAddress, "");
+    assert.notDeepEqual(
+      { lat: selectedPoint.pinLatitude, lng: selectedPoint.pinLongitude },
+      initialPoint,
+    );
+
+    await page.getByTestId("button-continue").click();
+    await page.getByTestId("input-date").waitFor({ state: "visible" });
+    await fillStepTwo(page);
+    await page.getByTestId("button-submit-report").click();
+    await page.locator(".confirmation-card").waitFor({ state: "visible" });
+
+    const report = await readSavedReport(page);
+    assert.equal(report.searchedAddress, "");
+    assert.equal(report.pinLatitude, selectedPoint.pinLatitude);
+    assert.equal(report.pinLongitude, selectedPoint.pinLongitude);
+  } finally {
+    await page.close();
+  }
+});
+
+test("Android Chrome residents can move the pin and submit without an address", async () => {
+  const page = await openReport({
+    browserInstance: browser,
+    device: devices["Pixel 7"],
+  });
+  try {
+    const browserContext = await page.evaluate(() => ({
+      width: window.innerWidth,
+      userAgent: navigator.userAgent,
+      hasTouch: navigator.maxTouchPoints > 0 || "ontouchstart" in window,
+    }));
+    assert.equal(browserContext.width, 412);
+    assert.equal(browserContext.hasTouch, true);
+    assert.match(browserContext.userAgent, /Android/);
+    assert.match(browserContext.userAgent, /Pixel 7/);
 
     await page.getByTestId("button-issue-potholes").click();
     const selectedPoint = await dragPinWithTouch(page);

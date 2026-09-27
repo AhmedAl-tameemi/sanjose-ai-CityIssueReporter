@@ -3,3 +3,4 @@
 - [Public map services](public-map-services.md) — keep the prototype keyless; public OSM/Nominatim usage needs attribution, low request volume, and an upgrade path for scale.
 - [Dependency-free tests](dependency-free-tests.md) — use Node’s built-in runner for focused pure tests; add browser tooling only when rendered interaction coverage requires it.
 - [Workspace-scoped package installs](workspace-package-installs.md) — if the managed installer hits pnpm’s root guard, add dependencies only to their intended workspace.
+- [Playwright WebKit on Replit](playwright-webkit-nix.md) — headless WebKit needs its bundled WPE libraries and Replit’s Nix library paths preserved together.

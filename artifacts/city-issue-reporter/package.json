@@ -8,8 +8,8 @@
     "build": "vite build --config vite.config.ts",
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node --experimental-strip-types --test tests/*.test.mjs",
-    "test:browser": "node --test tests/*.browser.test.mjs"
+    "test": "node --experimental-strip-types --test $(find tests -maxdepth 1 -type f -name '*.test.mjs' ! -name '*.browser.test.mjs' -print)",
+    "test:browser": "node ./node_modules/playwright-core/cli.js install webkit && node --test tests/*.browser.test.mjs"
   },
   "devDependencies": {
     "@hookform/resolvers": "^3.10.0",
