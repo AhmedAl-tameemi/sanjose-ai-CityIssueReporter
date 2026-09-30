@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Check, Clipboard, ImageIcon, MapPin, RotateCcw } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Check, Clipboard, ImageIcon, MapPin, RotateCcw } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import {
   readReport,
@@ -10,6 +10,15 @@ import {
   issueTranslationKeys,
   useLanguage,
 } from '../i18n';
+import { assessReportSafety, type ReportSafetyConsequence } from '../lib/reportSafety';
+
+const safetyRiskTranslationKeys = {
+  injury: 'riskInjury',
+  accident: 'riskAccident',
+  propertyDamage: 'riskPropertyDamage',
+  blockedAccess: 'riskBlockedAccess',
+  otherSafetyHazard: 'riskOtherSafetyHazard',
+} as const satisfies Record<ReportSafetyConsequence, string>;
 
 export default function ConfirmationPage() {
   const { language, direction, setLanguage, t } = useLanguage();
@@ -46,6 +55,11 @@ export default function ConfirmationPage() {
       </div>
     );
   }
+
+  const safetyAssessment = assessReportSafety(
+    report.description,
+    report.translationStatus === 'complete' ? report.englishTranslation?.description : undefined,
+  );
 
   const copyNumber = async () => {
     try {
@@ -84,6 +98,31 @@ export default function ConfirmationPage() {
             </div>
             <div className="hint" style={{ marginTop: 9 }}>{copied ? t('copied') : t('saveNumber')}</div>
           </div>
+
+          {safetyAssessment.level !== 'routine' && (
+            <section
+              className={`confirmation-safety ${safetyAssessment.level}`}
+              role={safetyAssessment.level === 'immediate' ? 'alert' : 'status'}
+              data-testid={`confirmation-safety-${safetyAssessment.level}`}
+            >
+              <div className="confirmation-safety-heading">
+                <AlertTriangle size={19} aria-hidden="true" />
+                <h2>{safetyAssessment.level === 'immediate' ? t('safetyEscalationTitle') : t('safetyRiskTitle')}</h2>
+              </div>
+              <p>
+                {safetyAssessment.level === 'immediate'
+                  ? t('safetyEscalationText')
+                  : t('safetyRiskText', {
+                    risk: t(safetyRiskTranslationKeys[safetyAssessment.consequence]),
+                  })}
+              </p>
+              {safetyAssessment.level === 'immediate' && (
+                <a className="button safety-call" href="tel:911" data-testid="link-confirmation-call-911">
+                  {t('call911')}
+                </a>
+              )}
+            </section>
+          )}
 
           <div className="confirmation-body">
             <section className="confirmation-section" aria-labelledby="summary-heading">

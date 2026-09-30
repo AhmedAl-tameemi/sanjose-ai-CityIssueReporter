@@ -422,6 +422,15 @@
 .report-number { display: inline-flex; align-items: center; gap: 10px; margin-top: 25px; padding: 11px 15px; border: 1px dashed hsl(var(--primary) / .55); border-radius: 9px; background: hsl(var(--card)); color: hsl(var(--primary)); font-family: var(--app-font-mono); font-size: 14px; font-weight: 700; letter-spacing: .06em; }
 .copy-number { display: inline-flex; border: 0; padding: 0; background: transparent; color: inherit; cursor: pointer; }
 .copy-number:hover { opacity: .72; }
+.confirmation-safety { display: grid; justify-items: start; gap: 9px; margin: 20px 55px 0; padding: 17px 18px; border: 1px solid hsl(var(--border)); border-radius: 12px; }
+.confirmation-safety.immediate { border-color: hsl(var(--destructive) / .38); background: hsl(var(--destructive) / .08); }
+.confirmation-safety.serious { border-color: hsl(38 78% 62%); background: hsl(40 92% 95%); }
+.confirmation-safety-heading { display: flex; align-items: center; gap: 9px; }
+.confirmation-safety-heading h2 { margin: 0; font-size: 14px; }
+.confirmation-safety-heading svg { flex: 0 0 auto; color: hsl(var(--destructive)); }
+.confirmation-safety.serious .confirmation-safety-heading svg { color: hsl(32 88% 37%); }
+.confirmation-safety p { margin: 0; font-size: 13px; line-height: 1.55; }
+.confirmation-safety .button { margin-top: 2px; }
 .confirmation-body { padding: 31px 55px 38px; }
 .confirmation-section + .confirmation-section { margin-top: 31px; }
 .confirmation-section h2 { margin: 0 0 15px; font-size: 14px; letter-spacing: -.01em; }
@@ -480,6 +489,7 @@
   .field-grid.two, .choice-grid { grid-template-columns: 1fr; }
   .confirmation-page { padding: 25px 0 60px; }
   .confirmation-top { padding: 35px 21px 31px; }
+  .confirmation-safety { margin: 18px 19px 0; padding: 15px; }
   .confirmation-body { padding: 24px 19px 28px; }
   .summary-grid { grid-template-columns: 1fr; }
   .summary-item.full { grid-column: auto; }

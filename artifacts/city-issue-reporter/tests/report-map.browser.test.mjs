@@ -349,16 +349,19 @@ async function waitForPinAtMapCenter(page) {
   );
 }
 
-async function fillStepTwo(page) {
+async function fillStepTwo(page, description = "A large pothole has formed beside the curb.") {
   await page
     .getByTestId("input-date")
     .fill(await browserLocalDate(page));
   await page.getByTestId("input-approximate-time").fill("Around noon");
-  await page
-    .getByTestId("input-description")
-    .fill("A large pothole has formed beside the curb.");
+  await page.getByTestId("input-description").fill(description);
   await page.getByTestId("select-frequency").selectOption("One time");
   await page.getByTestId("button-continue").click();
+  const continueWithReport = page.getByTestId("button-continue-with-report");
+  if (await continueWithReport.isVisible()) {
+    await continueWithReport.click();
+    await page.getByTestId("button-continue").click();
+  }
   await page.getByTestId("button-submit-report").waitFor({ state: "visible" });
 }
 
@@ -779,6 +782,78 @@ test("residents can drop a photo onto the photo evidence field", async () => {
     assert.equal(draft.evidence.type, "image/png");
     assert.equal(draft.evidence.objectPath, "/objects/evidence/123e4567-e89b-12d3-a456-426614174000");
     assert.equal(await addPhotoButton.innerText(), "Replace photo");
+  } finally {
+    await page.close();
+  }
+});
+
+test("confirmation acknowledges a described non-emergency safety risk", async () => {
+  const page = await openReport();
+  try {
+    await page.getByTestId("button-issue-potholes").click();
+    await dragPin(page);
+    await page.getByTestId("button-continue").click();
+    await fillStepTwo(page, "The sidewalk is blocked, so wheelchair users have to enter traffic.");
+    await page.getByTestId("button-submit-report").click();
+    await page.locator(".confirmation-card").waitFor({ state: "visible" });
+
+    const riskMessage = page.getByTestId("confirmation-safety-serious");
+    const message = await riskMessage.innerText();
+    assert.match(message, /blocked access/i);
+    assert.match(message, /response times are not guaranteed/i);
+    assert.equal(await page.getByTestId("link-confirmation-call-911").count(), 0);
+  } finally {
+    await page.close();
+  }
+});
+
+test("confirmation directs residents describing immediate danger to call 911", async () => {
+  const page = await openReport();
+  try {
+    await page.getByTestId("button-issue-potholes").click();
+    await dragPin(page);
+    await page.getByTestId("button-continue").click();
+    await page.getByTestId("input-date").fill(await browserLocalDate(page));
+    await page.getByTestId("input-approximate-time").fill("Right now");
+    await page.getByTestId("input-description").fill(
+      "A person is unconscious and not breathing after a car hit them.",
+    );
+    await page.getByTestId("select-frequency").selectOption("One time");
+    await page.getByTestId("safety-escalation").waitFor({ state: "visible" });
+    await page.getByTestId("button-continue-with-report").click();
+    await page.getByTestId("button-continue").click();
+    await page.getByTestId("button-submit-report").waitFor({ state: "visible" });
+    await page.getByTestId("button-submit-report").click();
+    await page.locator(".confirmation-card").waitFor({ state: "visible" });
+
+    const emergencyMessage = page.getByTestId("confirmation-safety-immediate");
+    assert.match(await emergencyMessage.innerText(), /isn't monitored for emergencies/i);
+    assert.equal(
+      await page.getByTestId("link-confirmation-call-911").getAttribute("href"),
+      "tel:911",
+    );
+  } finally {
+    await page.close();
+  }
+});
+
+test("urgent Spanish descriptions show emergency guidance before report submission", async () => {
+  const page = await openReport();
+  try {
+    await page.getByTestId("select-language").selectOption("es");
+    await page.getByTestId("button-issue-potholes").click();
+    await dragPin(page);
+    await page.getByTestId("button-continue").click();
+    await page.getByTestId("input-date").fill(await browserLocalDate(page));
+    await page.getByTestId("input-approximate-time").fill("Ahora");
+    await page.getByTestId("input-description").fill(
+      "Hay una emergencia médica y alguien no puede respirar.",
+    );
+    await page.getByTestId("select-frequency").selectOption("One time");
+
+    const safetyAlert = page.getByTestId("safety-escalation");
+    await safetyAlert.waitFor({ state: "visible" });
+    assert.match(await safetyAlert.innerText(), /Llama al 911/i);
   } finally {
     await page.close();
   }

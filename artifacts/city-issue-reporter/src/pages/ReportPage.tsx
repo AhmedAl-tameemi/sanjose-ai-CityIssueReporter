@@ -40,7 +40,7 @@ import {
   type LanguageCode,
 } from '../i18n';
 import { useResidentEvidencePreview } from '../lib/evidencePreview';
-import { isImmediateDangerDescription } from '../lib/reportSafety';
+import { assessReportSafety } from '../lib/reportSafety';
 
 type FieldErrors = Partial<Record<keyof ReportDraft, string>>;
 
@@ -89,6 +89,7 @@ export default function ReportPage() {
   const headingRef = useRef<HTMLHeadingElement>(null);
   const evidenceInputRef = useRef<HTMLInputElement>(null);
   const maxReportDate = localDateValue(new Date());
+  const immediateDangerDescribed = assessReportSafety(draft.description).level === 'immediate';
 
   useEffect(() => {
     return () => {
@@ -156,7 +157,7 @@ export default function ReportPage() {
     if (!validateStep(step)) return;
     if (
       step === 2 &&
-      isImmediateDangerDescription(draft.description) &&
+      immediateDangerDescribed &&
       !safetyEscalationAcknowledged
     ) return;
     setStep((current) => Math.min(3, current + 1));
@@ -488,7 +489,7 @@ export default function ReportPage() {
                         {errors.description ? <span className="error-text" role="alert">{errors.description}</span> : <span className="hint">{t('privacyHint')}</span>}
                         <span className="hint">{draft.description.length}/500</span>
                       </div>
-                      {isImmediateDangerDescription(draft.description) && !safetyEscalationAcknowledged && (
+                      {immediateDangerDescribed && !safetyEscalationAcknowledged && (
                         <div className="safety-escalation" role="alert" aria-live="assertive" data-testid="safety-escalation">
                           <div className="safety-escalation-heading">
                             <AlertTriangle size={20} aria-hidden="true" />
