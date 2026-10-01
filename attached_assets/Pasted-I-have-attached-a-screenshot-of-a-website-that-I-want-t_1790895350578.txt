@@ -1,0 +1,21 @@
+I have attached a screenshot of a website that I want to use as the visual inspiration for my existing app.
+
+Please analyze the screenshot carefully and redesign my app so that it has the same overall visual style, color scheme, and professional feel.
+
+Specifically:
+
+- Identify the main colors, secondary colors, accent colors, background colors, and text colors used in the screenshot and apply a similar color palette throughout my app.
+- Match the overall visual vibe of the reference, including its level of simplicity, spacing, typography, button styles, cards, borders, shadows, icons, and navigation.
+- Use the screenshot as inspiration for the header and navigation bar design.
+- Make the layout clean, modern, professional, and consistent across every page.
+- Restyle forms, input fields, dropdowns, buttons, report cards, maps, dashboards, and other UI components so they all feel like part of the same design system.
+- Pay attention to details such as border radius, padding, whitespace, font weights, hover effects, and visual hierarchy.
+- Make the app responsive and polished on both desktop and mobile.
+- Update my app's logo/branding so that it fits naturally with the visual identity shown in the screenshot. Use a similar design language, color treatment, placement, and overall feel, but do not simply copy the reference logo exactly.
+- Keep my app's own name and identity.
+- Do not remove or change any of my app's existing features, functionality, database connections, forms, or navigation routes. This should primarily be a visual redesign.
+- Maintain good accessibility, including readable text contrast and clearly distinguishable buttons and form controls.
+
+Before making changes, inspect my existing project structure and reuse the current components where possible rather than rebuilding the entire application.
+
+The final result should feel like my traffic reporting app belongs to the same visual design family as the website in the attached screenshot while still being its own original product.
