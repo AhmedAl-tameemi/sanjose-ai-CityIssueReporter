@@ -233,6 +233,48 @@ paths:
       responses:
         "204":
           description: Staff session cleared.
+  /reports:
+    get:
+      operationId: listTrafficReports
+      tags: [Reports]
+      summary: List reports available to the current resident or staff member
+      description: Residents receive only reports tied to their private browser session; authenticated staff receive all reports.
+      responses:
+        "200":
+          description: Reports newest first.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrafficReportHistory"
+    post:
+      operationId: createTrafficReport
+      tags: [Reports]
+      summary: Save a resident traffic-safety report
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TrafficReportInput"
+      responses:
+        "201":
+          description: Report saved; AI analysis may be pending or unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrafficReport"
+        "400":
+          description: Invalid report.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+        "503":
+          description: Persistent report storage is temporarily unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
 components:
   schemas:
     HealthStatus:
@@ -324,6 +366,182 @@ components:
         - location
         - approximateTime
         - description
+    TrafficReportInput:
+      type: object
+      properties:
+        clientSubmissionId:
+          type: string
+          format: uuid
+        originalReport:
+          $ref: "#/components/schemas/TrafficReportOriginal"
+        evidence:
+          oneOf:
+            - $ref: "#/components/schemas/TrafficReportEvidenceInput"
+            - type: "null"
+        language:
+          type: string
+          minLength: 2
+          maxLength: 10
+        englishTranslation:
+          oneOf:
+            - $ref: "#/components/schemas/ReportTranslationResponse"
+            - type: "null"
+      required:
+        - clientSubmissionId
+        - originalReport
+        - evidence
+        - language
+        - englishTranslation
+    TrafficReportOriginal:
+      type: object
+      properties:
+        issueType:
+          type: string
+          enum: [Unsafe driving, Speeding, Potholes, Illegal dumping, Streetlight problems, Other]
+        location:
+          type: ["string", "null"]
+          maxLength: 300
+        searchedAddress:
+          type: ["string", "null"]
+          maxLength: 300
+        pinLatitude:
+          type: ["number", "null"]
+          minimum: -90
+          maximum: 90
+        pinLongitude:
+          type: ["number", "null"]
+          minimum: -180
+          maximum: 180
+        date:
+          type: string
+          format: date
+        approximateTime:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          minLength: 15
+          maxLength: 500
+        frequency:
+          type: string
+          enum: [One time, A few times, Happens often, Happens every day]
+        name:
+          type: ["string", "null"]
+          maxLength: 200
+        email:
+          type: ["string", "null"]
+          format: email
+          maxLength: 320
+        phone:
+          type: ["string", "null"]
+          maxLength: 80
+      required:
+        - issueType
+        - location
+        - searchedAddress
+        - pinLatitude
+        - pinLongitude
+        - date
+        - approximateTime
+        - description
+        - frequency
+        - name
+        - email
+        - phone
+    TrafficReportEvidenceInput:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+        type:
+          type: string
+          enum: [image/jpeg, image/png, image/webp, image/gif]
+        size:
+          type: integer
+          minimum: 1
+          maximum: 3145728
+        objectPath:
+          type: string
+          pattern: "^/objects/evidence/[a-f0-9-]{36}$"
+        previewToken:
+          type: string
+          minLength: 1
+          maxLength: 2048
+      required: [name, type, size, objectPath, previewToken]
+    TrafficReportEvidence:
+      type: object
+      properties:
+        name: { type: string }
+        type: { type: string }
+        size: { type: integer }
+      required: [name, type, size]
+    TrafficReportAnalysis:
+      type: object
+      properties:
+        summary:
+          type: string
+          maxLength: 500
+        urgency:
+          type: string
+          enum: [low, medium, high]
+        suggestedCategory:
+          type: string
+          enum: [speeding, pothole, unsafe_crossing, distracted_driving, unsafe_driving, streetlight, illegal_dumping, other]
+        recommendedAction:
+          type: string
+          maxLength: 500
+      required: [summary, urgency, suggestedCategory, recommendedAction]
+    TrafficReport:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        reportNumber:
+          type: string
+        category:
+          type: string
+        location:
+          type: ["string", "null"]
+        originalReport:
+          $ref: "#/components/schemas/TrafficReportOriginal"
+        evidence:
+          oneOf:
+            - $ref: "#/components/schemas/TrafficReportEvidence"
+            - type: "null"
+        analysis:
+          oneOf:
+            - $ref: "#/components/schemas/TrafficReportAnalysis"
+            - type: "null"
+        analysisStatus:
+          type: string
+          enum: [pending, complete, unavailable]
+        status:
+          type: string
+          enum: [submitted]
+        submittedAt:
+          type: string
+          format: date-time
+        language:
+          type: string
+        englishTranslation:
+          oneOf:
+            - $ref: "#/components/schemas/ReportTranslationResponse"
+            - type: "null"
+      required: [id, reportNumber, category, location, originalReport, evidence, analysis, analysisStatus, status, submittedAt, language, englishTranslation]
+    TrafficReportHistory:
+      type: object
+      properties:
+        reports:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrafficReport"
+        viewer:
+          type: string
+          enum: [resident, staff]
+      required: [reports, viewer]
     ErrorEnvelope:
       type: object
       properties:
