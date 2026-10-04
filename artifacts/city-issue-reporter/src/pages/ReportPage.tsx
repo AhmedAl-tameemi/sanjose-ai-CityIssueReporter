@@ -438,7 +438,16 @@ export default function ReportPage() {
               </div>
               <span className="step-count" aria-label={t('stepOf', { step })}>0{step} / 03</span>
             </div>
-            <div className="progress-track" aria-hidden="true"><div className="progress-value" style={{ width: progress }} /></div>
+            <div
+              className="progress-track"
+              role="progressbar"
+              aria-label={t('stepOf', { step })}
+              aria-valuemin={0}
+              aria-valuemax={3}
+              aria-valuenow={step}
+            >
+              <div className="progress-value" style={{ width: progress }} />
+            </div>
           </div>
 
           <form onSubmit={submit} noValidate>

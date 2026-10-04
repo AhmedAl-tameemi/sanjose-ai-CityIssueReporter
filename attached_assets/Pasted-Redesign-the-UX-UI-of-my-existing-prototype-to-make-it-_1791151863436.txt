@@ -1,0 +1,32 @@
+Redesign the UX/UI of my existing prototype to make it feel more modern, polished, intuitive, and easy to navigate.
+
+IMPORTANT: Keep the SAME existing color scheme, branding, logo, and overall identity. Do not completely redesign the brand. Instead, modernize how the existing colors and visual elements are used throughout the interface.
+
+### UX/UI Improvements
+
+- Create a clean, modern, professional interface with better spacing and less visual clutter.
+- Improve the visual hierarchy so users immediately understand what they should do first, second, and next.
+- Use consistent typography, button styles, input fields, cards, icons, spacing, and border-radius throughout the application.
+- Use the existing colors more intentionally. Keep the main brand color for primary actions and use lighter variations for backgrounds, cards, highlights, and secondary elements.
+- Add more whitespace between sections so the interface feels organized and easy to scan.
+- Make primary buttons visually prominent while keeping secondary actions more subtle.
+- Improve forms by clearly grouping related information together and using helpful labels, placeholders, and short instructions.
+- Break long forms or complicated processes into simple sections or steps when appropriate.
+- Add a progress indicator or step indicator for multi-step processes.
+- Make confirmation and success screens clear and reassuring, with an obvious next action.
+- Improve navigation so users can easily understand where they are and how to return to previous sections.
+- Use modern cards, subtle shadows, clean borders, and rounded corners without making the design overly decorative.
+- Add simple, professional icons where they improve understanding.
+- Include clear hover, selected, loading, error, and success states.
+- Make error messages specific and place them near the field or action that needs attention.
+- Make the design fully responsive for desktop, tablet, and mobile.
+
+### User Experience Goal
+
+The prototype should feel simple enough that a first-time user can understand how to use it without instructions. Reduce unnecessary clicks, confusing wording, and visual distractions.
+
+The design should feel like a modern professional web application rather than a basic prototype, while still maintaining the current color palette and branding.
+
+Do NOT remove or break any existing functionality, database connections, forms, AI features, or stored data. Focus primarily on improving the front-end UX/UI and user flow.
+
+Before making major structural changes, review the existing prototype and reuse the strongest parts of the current design. Improve the interface rather than rebuilding the application unnecessarily.
