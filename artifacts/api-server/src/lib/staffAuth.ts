@@ -1,10 +1,13 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import type { Request, Response } from "express";
 
 const staffSessionCookie = "city_staff_session";
+const residentOwnerCookie = "city_resident_owner";
 const staffSessionTtlSeconds = 8 * 60 * 60;
 const residentPreviewTtlSeconds = 24 * 60 * 60;
+const residentOwnerTtlSeconds = 5 * 365 * 24 * 60 * 60;
 const evidenceObjectPathPattern = /^\/objects\/evidence\/[a-f0-9-]{36}$/i;
+const residentOwnerIdPattern = /^[a-f0-9-]{36}$/i;
 
 export type StaffRole = "city-evidence-reviewer" | "city-admin";
 
@@ -15,11 +18,12 @@ export type StaffSession = {
 };
 
 type SignedTokenPayload = {
-  aud: "city-staff-session" | "resident-evidence-preview";
+  aud: "city-staff-session" | "resident-evidence-preview" | "resident-report-owner";
   exp: number;
   email?: string;
   role?: StaffRole;
   objectPath?: string;
+  ownerId?: string;
 };
 
 function getSigningSecret(): string {
@@ -150,6 +154,34 @@ export function canResidentPreviewEvidence(
 
   const payload = readToken(token, "resident-evidence-preview");
   return payload?.objectPath === objectPath;
+}
+
+/**
+ * Gives an anonymous resident a signed, long-lived browser identity so their
+ * report history is private to this browser without requiring an account.
+ */
+export function getResidentOwnerId(req: Request, res: Response): string {
+  const cookies = req.cookies as Record<string, unknown> | undefined;
+  const existingToken = cookies?.[residentOwnerCookie];
+  if (typeof existingToken === "string") {
+    const payload = readToken(existingToken, "resident-report-owner");
+    if (payload?.ownerId && residentOwnerIdPattern.test(payload.ownerId)) {
+      return payload.ownerId;
+    }
+  }
+
+  const ownerId = randomUUID();
+  const token = createToken({
+    aud: "resident-report-owner",
+    ownerId,
+    exp: Math.floor(Date.now() / 1000) + residentOwnerTtlSeconds,
+  });
+  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  res.append(
+    "Set-Cookie",
+    `${residentOwnerCookie}=${token}; Max-Age=${residentOwnerTtlSeconds}; Path=/api; HttpOnly; SameSite=Strict${secure}`,
+  );
+  return ownerId;
 }
 
 export function setStaffSessionCookie(res: Response, token: string): void {

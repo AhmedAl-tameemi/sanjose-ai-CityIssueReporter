@@ -106,3 +106,215 @@ export const GetStaffSessionResponse = zod.object({
 export const StaffLogoutResponse = zod.void()
 
 
+/**
+ * Residents receive only reports tied to their private browser session; authenticated staff receive all reports.
+ * @summary List reports available to the current resident or staff member
+ */
+export const listTrafficReportsResponseReportsItemOriginalReportLocationMax = 300;
+
+export const listTrafficReportsResponseReportsItemOriginalReportSearchedAddressMax = 300;
+
+export const listTrafficReportsResponseReportsItemOriginalReportPinLatitudeMin = -90;
+export const listTrafficReportsResponseReportsItemOriginalReportPinLatitudeMax = 90;
+
+export const listTrafficReportsResponseReportsItemOriginalReportPinLongitudeMin = -180;
+export const listTrafficReportsResponseReportsItemOriginalReportPinLongitudeMax = 180;
+
+export const listTrafficReportsResponseReportsItemOriginalReportApproximateTimeMax = 100;
+
+export const listTrafficReportsResponseReportsItemOriginalReportDescriptionMin = 15;
+export const listTrafficReportsResponseReportsItemOriginalReportDescriptionMax = 500;
+
+export const listTrafficReportsResponseReportsItemOriginalReportNameMax = 200;
+
+export const listTrafficReportsResponseReportsItemOriginalReportEmailMax = 320;
+
+export const listTrafficReportsResponseReportsItemOriginalReportPhoneMax = 80;
+
+export const listTrafficReportsResponseReportsItemAnalysisOneSummaryMax = 500;
+
+export const listTrafficReportsResponseReportsItemAnalysisOneRecommendedActionMax = 500;
+
+
+
+export const ListTrafficReportsResponse = zod.object({
+  "reports": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "reportNumber": zod.string(),
+  "category": zod.string(),
+  "location": zod.string().nullable(),
+  "originalReport": zod.object({
+  "issueType": zod.enum(['Unsafe driving', 'Speeding', 'Potholes', 'Illegal dumping', 'Streetlight problems', 'Other']),
+  "location": zod.string().max(listTrafficReportsResponseReportsItemOriginalReportLocationMax).nullable(),
+  "searchedAddress": zod.string().max(listTrafficReportsResponseReportsItemOriginalReportSearchedAddressMax).nullable(),
+  "pinLatitude": zod.number().min(listTrafficReportsResponseReportsItemOriginalReportPinLatitudeMin).max(listTrafficReportsResponseReportsItemOriginalReportPinLatitudeMax).nullable(),
+  "pinLongitude": zod.number().min(listTrafficReportsResponseReportsItemOriginalReportPinLongitudeMin).max(listTrafficReportsResponseReportsItemOriginalReportPinLongitudeMax).nullable(),
+  "date": zod.coerce.date(),
+  "approximateTime": zod.string().min(1).max(listTrafficReportsResponseReportsItemOriginalReportApproximateTimeMax),
+  "description": zod.string().min(listTrafficReportsResponseReportsItemOriginalReportDescriptionMin).max(listTrafficReportsResponseReportsItemOriginalReportDescriptionMax),
+  "frequency": zod.enum(['One time', 'A few times', 'Happens often', 'Happens every day']),
+  "name": zod.string().max(listTrafficReportsResponseReportsItemOriginalReportNameMax).nullable(),
+  "email": zod.string().email().max(listTrafficReportsResponseReportsItemOriginalReportEmailMax).nullable(),
+  "phone": zod.string().max(listTrafficReportsResponseReportsItemOriginalReportPhoneMax).nullable()
+}),
+  "evidence": zod.union([zod.object({
+  "name": zod.string(),
+  "type": zod.string(),
+  "size": zod.number().int()
+}),zod.null()]),
+  "analysis": zod.union([zod.object({
+  "summary": zod.string().max(listTrafficReportsResponseReportsItemAnalysisOneSummaryMax),
+  "urgency": zod.enum(['low', 'medium', 'high']),
+  "suggestedCategory": zod.enum(['speeding', 'pothole', 'unsafe_crossing', 'distracted_driving', 'unsafe_driving', 'streetlight', 'illegal_dumping', 'other']),
+  "recommendedAction": zod.string().max(listTrafficReportsResponseReportsItemAnalysisOneRecommendedActionMax)
+}),zod.null()]),
+  "analysisStatus": zod.enum(['pending', 'complete', 'unavailable']),
+  "status": zod.enum(['submitted']),
+  "submittedAt": zod.coerce.date(),
+  "language": zod.string(),
+  "englishTranslation": zod.union([zod.object({
+  "location": zod.string(),
+  "approximateTime": zod.string(),
+  "description": zod.string()
+}),zod.null()])
+})),
+  "viewer": zod.enum(['resident', 'staff'])
+})
+
+
+/**
+ * @summary Save a resident traffic-safety report
+ */
+export const createTrafficReportBodyOriginalReportLocationMax = 300;
+
+export const createTrafficReportBodyOriginalReportSearchedAddressMax = 300;
+
+export const createTrafficReportBodyOriginalReportPinLatitudeMin = -90;
+export const createTrafficReportBodyOriginalReportPinLatitudeMax = 90;
+
+export const createTrafficReportBodyOriginalReportPinLongitudeMin = -180;
+export const createTrafficReportBodyOriginalReportPinLongitudeMax = 180;
+
+export const createTrafficReportBodyOriginalReportApproximateTimeMax = 100;
+
+export const createTrafficReportBodyOriginalReportDescriptionMin = 15;
+export const createTrafficReportBodyOriginalReportDescriptionMax = 500;
+
+export const createTrafficReportBodyOriginalReportNameMax = 200;
+
+export const createTrafficReportBodyOriginalReportEmailMax = 320;
+
+export const createTrafficReportBodyOriginalReportPhoneMax = 80;
+
+export const createTrafficReportBodyEvidenceOneNameMax = 255;
+
+export const createTrafficReportBodyEvidenceOneSizeMax = 3145728;
+
+export const createTrafficReportBodyEvidenceOneObjectPathRegExp = new RegExp('^/objects/evidence/[a-f0-9-]{36}$');
+export const createTrafficReportBodyEvidenceOnePreviewTokenMax = 2048;
+
+export const createTrafficReportBodyLanguageMin = 2;
+export const createTrafficReportBodyLanguageMax = 10;
+
+
+
+export const CreateTrafficReportBody = zod.object({
+  "clientSubmissionId": zod.string().uuid(),
+  "originalReport": zod.object({
+  "issueType": zod.enum(['Unsafe driving', 'Speeding', 'Potholes', 'Illegal dumping', 'Streetlight problems', 'Other']),
+  "location": zod.string().max(createTrafficReportBodyOriginalReportLocationMax).nullable(),
+  "searchedAddress": zod.string().max(createTrafficReportBodyOriginalReportSearchedAddressMax).nullable(),
+  "pinLatitude": zod.number().min(createTrafficReportBodyOriginalReportPinLatitudeMin).max(createTrafficReportBodyOriginalReportPinLatitudeMax).nullable(),
+  "pinLongitude": zod.number().min(createTrafficReportBodyOriginalReportPinLongitudeMin).max(createTrafficReportBodyOriginalReportPinLongitudeMax).nullable(),
+  "date": zod.coerce.date(),
+  "approximateTime": zod.string().min(1).max(createTrafficReportBodyOriginalReportApproximateTimeMax),
+  "description": zod.string().min(createTrafficReportBodyOriginalReportDescriptionMin).max(createTrafficReportBodyOriginalReportDescriptionMax),
+  "frequency": zod.enum(['One time', 'A few times', 'Happens often', 'Happens every day']),
+  "name": zod.string().max(createTrafficReportBodyOriginalReportNameMax).nullable(),
+  "email": zod.string().email().max(createTrafficReportBodyOriginalReportEmailMax).nullable(),
+  "phone": zod.string().max(createTrafficReportBodyOriginalReportPhoneMax).nullable()
+}),
+  "evidence": zod.union([zod.object({
+  "name": zod.string().max(createTrafficReportBodyEvidenceOneNameMax),
+  "type": zod.enum(['image/jpeg', 'image/png', 'image/webp', 'image/gif']),
+  "size": zod.number().int().min(1).max(createTrafficReportBodyEvidenceOneSizeMax),
+  "objectPath": zod.string().regex(createTrafficReportBodyEvidenceOneObjectPathRegExp),
+  "previewToken": zod.string().min(1).max(createTrafficReportBodyEvidenceOnePreviewTokenMax)
+}),zod.null()]),
+  "language": zod.string().min(createTrafficReportBodyLanguageMin).max(createTrafficReportBodyLanguageMax),
+  "englishTranslation": zod.union([zod.object({
+  "location": zod.string(),
+  "approximateTime": zod.string(),
+  "description": zod.string()
+}),zod.null()])
+})
+
+export const createTrafficReportResponseOriginalReportLocationMax = 300;
+
+export const createTrafficReportResponseOriginalReportSearchedAddressMax = 300;
+
+export const createTrafficReportResponseOriginalReportPinLatitudeMin = -90;
+export const createTrafficReportResponseOriginalReportPinLatitudeMax = 90;
+
+export const createTrafficReportResponseOriginalReportPinLongitudeMin = -180;
+export const createTrafficReportResponseOriginalReportPinLongitudeMax = 180;
+
+export const createTrafficReportResponseOriginalReportApproximateTimeMax = 100;
+
+export const createTrafficReportResponseOriginalReportDescriptionMin = 15;
+export const createTrafficReportResponseOriginalReportDescriptionMax = 500;
+
+export const createTrafficReportResponseOriginalReportNameMax = 200;
+
+export const createTrafficReportResponseOriginalReportEmailMax = 320;
+
+export const createTrafficReportResponseOriginalReportPhoneMax = 80;
+
+export const createTrafficReportResponseAnalysisOneSummaryMax = 500;
+
+export const createTrafficReportResponseAnalysisOneRecommendedActionMax = 500;
+
+
+
+export const CreateTrafficReportResponse = zod.object({
+  "id": zod.string().uuid(),
+  "reportNumber": zod.string(),
+  "category": zod.string(),
+  "location": zod.string().nullable(),
+  "originalReport": zod.object({
+  "issueType": zod.enum(['Unsafe driving', 'Speeding', 'Potholes', 'Illegal dumping', 'Streetlight problems', 'Other']),
+  "location": zod.string().max(createTrafficReportResponseOriginalReportLocationMax).nullable(),
+  "searchedAddress": zod.string().max(createTrafficReportResponseOriginalReportSearchedAddressMax).nullable(),
+  "pinLatitude": zod.number().min(createTrafficReportResponseOriginalReportPinLatitudeMin).max(createTrafficReportResponseOriginalReportPinLatitudeMax).nullable(),
+  "pinLongitude": zod.number().min(createTrafficReportResponseOriginalReportPinLongitudeMin).max(createTrafficReportResponseOriginalReportPinLongitudeMax).nullable(),
+  "date": zod.coerce.date(),
+  "approximateTime": zod.string().min(1).max(createTrafficReportResponseOriginalReportApproximateTimeMax),
+  "description": zod.string().min(createTrafficReportResponseOriginalReportDescriptionMin).max(createTrafficReportResponseOriginalReportDescriptionMax),
+  "frequency": zod.enum(['One time', 'A few times', 'Happens often', 'Happens every day']),
+  "name": zod.string().max(createTrafficReportResponseOriginalReportNameMax).nullable(),
+  "email": zod.string().email().max(createTrafficReportResponseOriginalReportEmailMax).nullable(),
+  "phone": zod.string().max(createTrafficReportResponseOriginalReportPhoneMax).nullable()
+}),
+  "evidence": zod.union([zod.object({
+  "name": zod.string(),
+  "type": zod.string(),
+  "size": zod.number().int()
+}),zod.null()]),
+  "analysis": zod.union([zod.object({
+  "summary": zod.string().max(createTrafficReportResponseAnalysisOneSummaryMax),
+  "urgency": zod.enum(['low', 'medium', 'high']),
+  "suggestedCategory": zod.enum(['speeding', 'pothole', 'unsafe_crossing', 'distracted_driving', 'unsafe_driving', 'streetlight', 'illegal_dumping', 'other']),
+  "recommendedAction": zod.string().max(createTrafficReportResponseAnalysisOneRecommendedActionMax)
+}),zod.null()]),
+  "analysisStatus": zod.enum(['pending', 'complete', 'unavailable']),
+  "status": zod.enum(['submitted']),
+  "submittedAt": zod.coerce.date(),
+  "language": zod.string(),
+  "englishTranslation": zod.union([zod.object({
+  "location": zod.string(),
+  "approximateTime": zod.string(),
+  "description": zod.string()
+}),zod.null()])
+})
+
+

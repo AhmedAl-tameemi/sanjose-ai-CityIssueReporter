@@ -26,7 +26,10 @@ import type {
   ReportTranslationInput,
   ReportTranslationResponse,
   StaffLoginInput,
-  StaffSession
+  StaffSession,
+  TrafficReport,
+  TrafficReportHistory,
+  TrafficReportInput
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -626,5 +629,171 @@ export const useStaffLogout = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getStaffLogoutMutationOptions(options));
+    }
+
+export const getListTrafficReportsUrl = () => {
+
+
+
+
+  return `/api/reports`
+}
+
+/**
+ * Residents receive only reports tied to their private browser session; authenticated staff receive all reports.
+ * @summary List reports available to the current resident or staff member
+ */
+export const listTrafficReports = async ( options?: Parameters<typeof customFetch>[1]): Promise<TrafficReportHistory> => {
+
+  return customFetch<TrafficReportHistory>(getListTrafficReportsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListTrafficReportsQueryKey = () => {
+    return [
+    `/api/reports`
+    ] as const;
+    }
+
+
+export const getListTrafficReportsQueryOptions = <TData = Awaited<ReturnType<typeof listTrafficReports>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listTrafficReports>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListTrafficReportsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listTrafficReports>>> = ({ signal }) => listTrafficReports({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listTrafficReports>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListTrafficReportsQueryResult = NonNullable<Awaited<ReturnType<typeof listTrafficReports>>>
+export type ListTrafficReportsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List reports available to the current resident or staff member
+ */
+
+export function useListTrafficReports<TData = Awaited<ReturnType<typeof listTrafficReports>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listTrafficReports>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListTrafficReportsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateTrafficReportUrl = () => {
+
+
+
+
+  return `/api/reports`
+}
+
+/**
+ * @summary Save a resident traffic-safety report
+ */
+export const createTrafficReport = async (trafficReportInput: TrafficReportInput, options?: Parameters<typeof customFetch>[1]): Promise<TrafficReport> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<TrafficReport>(getCreateTrafficReportUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(trafficReportInput)
+  }
+);}
+
+
+
+
+
+export const getCreateTrafficReportMutationKey = () => ['createTrafficReport'] as const;
+
+export const getCreateTrafficReportMutationOptions = <TError = ErrorType<ErrorEnvelope>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createTrafficReport>>, TError,CreateTrafficReportMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createTrafficReport>>, TError,CreateTrafficReportMutationVariables, TContext> => {
+
+const mutationKey = getCreateTrafficReportMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createTrafficReport>>, CreateTrafficReportMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  createTrafficReport(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateTrafficReportMutationResult = NonNullable<Awaited<ReturnType<typeof createTrafficReport>>>
+    export type CreateTrafficReportMutationBody = BodyType<TrafficReportInput>
+    export type CreateTrafficReportMutationError = ErrorType<ErrorEnvelope>
+    export type CreateTrafficReportMutationVariables = {data: BodyType<TrafficReportInput>}
+
+    /**
+ * @summary Save a resident traffic-safety report
+ */
+export const useCreateTrafficReport = <TError = ErrorType<ErrorEnvelope>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createTrafficReport>>, TError,CreateTrafficReportMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createTrafficReport>>,
+        TError,
+        CreateTrafficReportMutationVariables,
+        TContext
+      > => {
+      return useMutation(getCreateTrafficReportMutationOptions(options));
     }
 

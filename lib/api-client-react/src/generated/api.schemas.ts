@@ -61,6 +61,204 @@ export interface ReportTranslationResponse {
   description: string;
 }
 
+export type TrafficReportOriginalIssueType = typeof TrafficReportOriginalIssueType[keyof typeof TrafficReportOriginalIssueType];
+
+
+export const TrafficReportOriginalIssueType = {
+  Unsafe_driving: 'Unsafe driving',
+  Speeding: 'Speeding',
+  Potholes: 'Potholes',
+  Illegal_dumping: 'Illegal dumping',
+  Streetlight_problems: 'Streetlight problems',
+  Other: 'Other',
+} as const;
+
+export type TrafficReportOriginalFrequency = typeof TrafficReportOriginalFrequency[keyof typeof TrafficReportOriginalFrequency];
+
+
+export const TrafficReportOriginalFrequency = {
+  One_time: 'One time',
+  A_few_times: 'A few times',
+  Happens_often: 'Happens often',
+  Happens_every_day: 'Happens every day',
+} as const;
+
+export interface TrafficReportOriginal {
+  issueType: TrafficReportOriginalIssueType;
+  /**
+     * @maxLength 300
+     * @nullable
+     */
+  location: string | null;
+  /**
+     * @maxLength 300
+     * @nullable
+     */
+  searchedAddress: string | null;
+  /**
+     * @minimum -90
+     * @maximum 90
+     * @nullable
+     */
+  pinLatitude: number | null;
+  /**
+     * @minimum -180
+     * @maximum 180
+     * @nullable
+     */
+  pinLongitude: number | null;
+  date: string;
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  approximateTime: string;
+  /**
+     * @minLength 15
+     * @maxLength 500
+     */
+  description: string;
+  frequency: TrafficReportOriginalFrequency;
+  /**
+     * @maxLength 200
+     * @nullable
+     */
+  name: string | null;
+  /**
+     * @maxLength 320
+     * @nullable
+     */
+  email: string | null;
+  /**
+     * @maxLength 80
+     * @nullable
+     */
+  phone: string | null;
+}
+
+export type TrafficReportEvidenceInputType = typeof TrafficReportEvidenceInputType[keyof typeof TrafficReportEvidenceInputType];
+
+
+export const TrafficReportEvidenceInputType = {
+  'image/jpeg': 'image/jpeg',
+  'image/png': 'image/png',
+  'image/webp': 'image/webp',
+  'image/gif': 'image/gif',
+} as const;
+
+export interface TrafficReportEvidenceInput {
+  /** @maxLength 255 */
+  name: string;
+  type: TrafficReportEvidenceInputType;
+  /**
+     * @minimum 1
+     * @maximum 3145728
+     */
+  size: number;
+  /** @pattern ^/objects/evidence/[a-f0-9-]{36}$ */
+  objectPath: string;
+  /**
+     * @minLength 1
+     * @maxLength 2048
+     */
+  previewToken: string;
+}
+
+export interface TrafficReportInput {
+  clientSubmissionId: string;
+  originalReport: TrafficReportOriginal;
+  evidence: TrafficReportEvidenceInput | null;
+  /**
+     * @minLength 2
+     * @maxLength 10
+     */
+  language: string;
+  englishTranslation: ReportTranslationResponse | null;
+}
+
+export interface TrafficReportEvidence {
+  name: string;
+  type: string;
+  size: number;
+}
+
+export type TrafficReportAnalysisUrgency = typeof TrafficReportAnalysisUrgency[keyof typeof TrafficReportAnalysisUrgency];
+
+
+export const TrafficReportAnalysisUrgency = {
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+} as const;
+
+export type TrafficReportAnalysisSuggestedCategory = typeof TrafficReportAnalysisSuggestedCategory[keyof typeof TrafficReportAnalysisSuggestedCategory];
+
+
+export const TrafficReportAnalysisSuggestedCategory = {
+  speeding: 'speeding',
+  pothole: 'pothole',
+  unsafe_crossing: 'unsafe_crossing',
+  distracted_driving: 'distracted_driving',
+  unsafe_driving: 'unsafe_driving',
+  streetlight: 'streetlight',
+  illegal_dumping: 'illegal_dumping',
+  other: 'other',
+} as const;
+
+export interface TrafficReportAnalysis {
+  /** @maxLength 500 */
+  summary: string;
+  urgency: TrafficReportAnalysisUrgency;
+  suggestedCategory: TrafficReportAnalysisSuggestedCategory;
+  /** @maxLength 500 */
+  recommendedAction: string;
+}
+
+export type TrafficReportAnalysisStatus = typeof TrafficReportAnalysisStatus[keyof typeof TrafficReportAnalysisStatus];
+
+
+export const TrafficReportAnalysisStatus = {
+  pending: 'pending',
+  complete: 'complete',
+  unavailable: 'unavailable',
+} as const;
+
+export type TrafficReportStatus = typeof TrafficReportStatus[keyof typeof TrafficReportStatus];
+
+
+export const TrafficReportStatus = {
+  submitted: 'submitted',
+} as const;
+
+export interface TrafficReport {
+  id: string;
+  reportNumber: string;
+  category: string;
+  /** @nullable */
+  location: string | null;
+  originalReport: TrafficReportOriginal;
+  evidence: TrafficReportEvidence | null;
+  analysis: TrafficReportAnalysis | null;
+  analysisStatus: TrafficReportAnalysisStatus;
+  status: TrafficReportStatus;
+  submittedAt: string;
+  language: string;
+  englishTranslation: ReportTranslationResponse | null;
+}
+
+export type TrafficReportHistoryViewer = typeof TrafficReportHistoryViewer[keyof typeof TrafficReportHistoryViewer];
+
+
+export const TrafficReportHistoryViewer = {
+  resident: 'resident',
+  staff: 'staff',
+} as const;
+
+export interface TrafficReportHistory {
+  reports: TrafficReport[];
+  viewer: TrafficReportHistoryViewer;
+}
+
 export interface ErrorEnvelope {
   error: string;
 }
