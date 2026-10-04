@@ -1,4 +1,5 @@
 import type { LanguageCode } from '../i18n';
+import type { TrafficReportAnalysis } from '@workspace/api-client-react';
 
 export const issueTypes = [
   'Unsafe driving',
@@ -34,6 +35,7 @@ export type StaffEnglishTranslation = {
 };
 
 export type Report = {
+  reportId?: string;
   reportNumber: string;
   issueType: IssueType;
   location: string;
@@ -52,11 +54,14 @@ export type Report = {
   language?: LanguageCode;
   englishTranslation?: StaffEnglishTranslation;
   translationStatus?: 'complete' | 'pending' | 'not-needed';
+  analysis?: TrafficReportAnalysis | null;
+  analysisStatus?: 'pending' | 'complete' | 'unavailable';
+  status?: 'submitted';
 };
 
 export type ReportDraft = Omit<
   Report,
-  'reportNumber' | 'submittedAt' | 'language' | 'englishTranslation' | 'translationStatus'
+  'reportId' | 'reportNumber' | 'submittedAt' | 'language' | 'englishTranslation' | 'translationStatus' | 'analysis' | 'analysisStatus' | 'status'
 >;
 
 export const blankDraft: ReportDraft = {

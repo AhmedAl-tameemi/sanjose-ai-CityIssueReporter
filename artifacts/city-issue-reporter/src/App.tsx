@@ -6,6 +6,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
 import ConfirmationPage from './pages/ConfirmationPage';
 import ReportPage from './pages/ReportPage';
+import ReportHistoryPage from './pages/ReportHistoryPage';
 import { LanguageProvider } from './i18n';
 import {
   Route,
@@ -24,6 +25,7 @@ function Router() {
       <Switch>
         <Route path="/" component={ReportPage} />
         <Route path="/confirmation" component={ConfirmationPage} />
+        <Route path="/history" component={ReportHistoryPage} />
         <Route component={NotFound} />
       </Switch>
     </RoutedErrorBoundary>

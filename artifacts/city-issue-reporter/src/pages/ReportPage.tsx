@@ -19,7 +19,8 @@ import {
   X,
 } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
-import { translateReport } from '@workspace/api-client-react';
+import { translateReport, getListTrafficReportsQueryKey } from '@workspace/api-client-react';
+import { useQueryClient } from '@tanstack/react-query';
 import AddressMap from '../components/AddressMap';
 import {
   blankDraft,
@@ -41,6 +42,7 @@ import {
 } from '../i18n';
 import { useResidentEvidencePreview } from '../lib/evidencePreview';
 import { assessReportSafety } from '../lib/reportSafety';
+import { clearPendingSubmission, submitPersistentReport } from '../lib/reportSubmission';
 
 type FieldErrors = Partial<Record<keyof ReportDraft, string>>;
 
@@ -75,6 +77,7 @@ function FieldLabel({ children, optional }: { children: string; optional?: boole
 export default function ReportPage() {
   const { language, direction, setLanguage, t } = useLanguage();
   const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
   const [draft, setDraft] = useState<ReportDraft>(() => readDraft());
   const [step, setStep] = useState(1);
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -82,6 +85,9 @@ export default function ReportPage() {
   const [isEvidenceUploading, setIsEvidenceUploading] = useState(false);
   const [isEvidenceDragActive, setIsEvidenceDragActive] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submissionError, setSubmissionError] = useState('');
+  const submissionInFlight = useRef(false);
   const [isSearchingLocation, setIsSearchingLocation] = useState(false);
   const [locationMapVersion, setLocationMapVersion] = useState(0);
   const [safetyEscalationAcknowledged, setSafetyEscalationAcknowledged] = useState(false);
@@ -281,6 +287,7 @@ export default function ReportPage() {
 
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (submissionInFlight.current) return;
     if (!validateStep(1)) {
       setStep(1);
       return;
@@ -293,8 +300,10 @@ export default function ReportPage() {
       setStep(2);
       return;
     }
-    const uniquePart = crypto.randomUUID().split('-')[0].toUpperCase();
-    const reportNumber = `CIR-${new Date().getFullYear()}-${uniquePart}`;
+    submissionInFlight.current = true;
+    setIsSubmitting(true);
+    setSubmissionError('');
+    try {
     let englishTranslation: Report['englishTranslation'];
     let translationStatus: Report['translationStatus'] = 'not-needed';
 
@@ -321,21 +330,31 @@ export default function ReportPage() {
       }
     }
 
-    const report: Report = {
-      ...draft,
-      reportNumber,
-      submittedAt: new Date().toISOString(),
-      language,
-      englishTranslation,
-      translationStatus,
-    };
-    saveReport(report);
-    setLocation('/confirmation');
+    const report = await submitPersistentReport(draft, language, englishTranslation, translationStatus);
+    void queryClient.invalidateQueries({ queryKey: getListTrafficReportsQueryKey() });
+    let confirmationCached = false;
+    try {
+      saveReport(report);
+      confirmationCached = true;
+      removeDraft();
+    } catch {
+      // Browser caching is optional: the durable report is already saved.
+    }
+    clearPendingSubmission();
+    setLocation(confirmationCached ? '/confirmation' : '/history');
+    } catch (error) {
+      const detail = (error as { data?: { error?: unknown } })?.data?.error;
+      setSubmissionError(typeof detail === 'string' ? detail : t('errorSubmitReport'));
+    } finally {
+      submissionInFlight.current = false;
+      setIsSubmitting(false);
+    }
   };
 
   const startOver = () => {
     if (window.confirm(t('clearConfirm'))) {
       setDraft(blankDraft);
+      clearPendingSubmission();
       setErrors({});
       setStep(1);
       setIsSearchingLocation(false);
@@ -368,6 +387,7 @@ export default function ReportPage() {
           <span className="brand-name">{t('brandName')}</span>
         </Link>
         <div className="header-actions">
+          <Link className="header-history-link" href="/history" data-testid="link-report-history">{t('historyNav')}</Link>
           <span className="header-note">{t('headerNote')}</span>
           <label className="language-selector">
             <Globe size={16} aria-hidden="true" />
@@ -601,6 +621,7 @@ export default function ReportPage() {
               )}
             </div>
 
+            {submissionError && <p className="submit-error" role="alert" data-testid="error-report-submission">{submissionError}</p>}
             <div className="form-footer">
               <div className="footer-note">
                 {isSaved ? <Check size={14} /> : <KeyRound size={14} />}
@@ -608,10 +629,10 @@ export default function ReportPage() {
               </div>
               <div className="button-row">
                 {step === 1 && <button type="button" className="button button-link" onClick={startOver} data-testid="button-start-over">{t('startOver')}</button>}
-                {step > 1 && <button type="button" className="button button-secondary" onClick={() => setStep((current) => current - 1)} data-testid="button-back"><ArrowLeft size={15} /> {t('back')}</button>}
+                {step > 1 && <button type="button" className="button button-secondary" disabled={isSubmitting} onClick={() => setStep((current) => current - 1)} data-testid="button-back"><ArrowLeft size={15} /> {t('back')}</button>}
                 {step < 3 && <button type="button" className="button button-primary" onClick={goNext} data-testid="button-continue">{t('continue')} <ArrowRight size={15} /></button>}
-                {step === 3 && <button type="button" className="button button-secondary" onClick={saveForLater} disabled={isTranslating} data-testid="button-save-later">{t('saveLater')}</button>}
-                {step === 3 && <button type="submit" className="button button-primary" disabled={isTranslating} aria-busy={isTranslating} data-testid="button-submit-report">{isTranslating ? t('translating') : t('submitReport')} <ArrowRight size={15} /></button>}
+                {step === 3 && <button type="button" className="button button-secondary" onClick={saveForLater} disabled={isSubmitting} data-testid="button-save-later">{t('saveLater')}</button>}
+                {step === 3 && <button type="submit" className="button button-primary" disabled={isSubmitting} aria-busy={isSubmitting} data-testid="button-submit-report">{isTranslating ? t('translating') : isSubmitting ? t('submittingReport') : t('submitReport')} <ArrowRight size={15} /></button>}
               </div>
             </div>
           </form>

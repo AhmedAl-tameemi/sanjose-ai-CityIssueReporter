@@ -203,6 +203,30 @@
   gap: 17px;
 }
 
+.header-history-link {
+  color: hsl(var(--accent));
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.header-history-link:hover {
+  text-decoration: underline;
+}
+
+.header-history-link:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 5px;
+}
+
+.submit-error {
+  margin: 0;
+  padding: 16px 24px;
+  background: #fff1f0;
+  color: #912b21;
+}
+
 .language-selector {
   display: inline-flex;
   min-height: 38px;
@@ -1379,6 +1403,8 @@
   .site-header {
     min-height: 66px;
     padding: 12px 14px;
+    flex-wrap: wrap;
+    gap: 12px;
   }
 
   .brand {
@@ -1399,7 +1425,9 @@
   }
 
   .header-actions {
-    gap: 8px;
+    width: 100%;
+    justify-content: space-between;
+    gap: 12px;
   }
 
   .language-selector {

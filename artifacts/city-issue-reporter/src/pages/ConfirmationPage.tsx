@@ -82,7 +82,7 @@ export default function ConfirmationPage() {
           <span className="brand-mark" aria-hidden="true"><MapPin /></span>
           <span className="brand-name">{t('brandName')}</span>
         </Link>
-        <span className="header-note">{t('headerNote')}</span>
+        <Link className="header-history-link" href="/history" data-testid="link-report-history-confirmation">{t('historyNav')}</Link>
       </header>
       <main className="page-wrap confirmation-page">
         <article className="confirmation-card" aria-labelledby="confirmation-heading">
@@ -177,6 +177,7 @@ export default function ConfirmationPage() {
             </section>
 
             <div className="confirmation-actions">
+              <Link className="button button-primary" href="/history" data-testid="button-view-report-history">{t('historyNav')}</Link>
               <button type="button" className="button button-secondary" onClick={startAnother} data-testid="button-submit-another"><RotateCcw size={15} /> {t('submitAnother')}</button>
               <Link className="button button-primary" href="/" data-testid="link-back-home"><ArrowLeft size={15} /> {t('backStart')}</Link>
             </div>

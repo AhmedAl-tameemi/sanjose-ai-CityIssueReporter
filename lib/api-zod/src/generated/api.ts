@@ -120,6 +120,7 @@ export const listTrafficReportsResponseReportsItemOriginalReportPinLatitudeMax =
 export const listTrafficReportsResponseReportsItemOriginalReportPinLongitudeMin = -180;
 export const listTrafficReportsResponseReportsItemOriginalReportPinLongitudeMax = 180;
 
+export const listTrafficReportsResponseReportsItemOriginalReportDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
 export const listTrafficReportsResponseReportsItemOriginalReportApproximateTimeMax = 100;
 
 export const listTrafficReportsResponseReportsItemOriginalReportDescriptionMin = 15;
@@ -149,7 +150,7 @@ export const ListTrafficReportsResponse = zod.object({
   "searchedAddress": zod.string().max(listTrafficReportsResponseReportsItemOriginalReportSearchedAddressMax).nullable(),
   "pinLatitude": zod.number().min(listTrafficReportsResponseReportsItemOriginalReportPinLatitudeMin).max(listTrafficReportsResponseReportsItemOriginalReportPinLatitudeMax).nullable(),
   "pinLongitude": zod.number().min(listTrafficReportsResponseReportsItemOriginalReportPinLongitudeMin).max(listTrafficReportsResponseReportsItemOriginalReportPinLongitudeMax).nullable(),
-  "date": zod.coerce.date(),
+  "date": zod.string().regex(listTrafficReportsResponseReportsItemOriginalReportDateRegExp),
   "approximateTime": zod.string().min(1).max(listTrafficReportsResponseReportsItemOriginalReportApproximateTimeMax),
   "description": zod.string().min(listTrafficReportsResponseReportsItemOriginalReportDescriptionMin).max(listTrafficReportsResponseReportsItemOriginalReportDescriptionMax),
   "frequency": zod.enum(['One time', 'A few times', 'Happens often', 'Happens every day']),
@@ -195,6 +196,7 @@ export const createTrafficReportBodyOriginalReportPinLatitudeMax = 90;
 export const createTrafficReportBodyOriginalReportPinLongitudeMin = -180;
 export const createTrafficReportBodyOriginalReportPinLongitudeMax = 180;
 
+export const createTrafficReportBodyOriginalReportDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
 export const createTrafficReportBodyOriginalReportApproximateTimeMax = 100;
 
 export const createTrafficReportBodyOriginalReportDescriptionMin = 15;
@@ -226,7 +228,7 @@ export const CreateTrafficReportBody = zod.object({
   "searchedAddress": zod.string().max(createTrafficReportBodyOriginalReportSearchedAddressMax).nullable(),
   "pinLatitude": zod.number().min(createTrafficReportBodyOriginalReportPinLatitudeMin).max(createTrafficReportBodyOriginalReportPinLatitudeMax).nullable(),
   "pinLongitude": zod.number().min(createTrafficReportBodyOriginalReportPinLongitudeMin).max(createTrafficReportBodyOriginalReportPinLongitudeMax).nullable(),
-  "date": zod.coerce.date(),
+  "date": zod.string().regex(createTrafficReportBodyOriginalReportDateRegExp),
   "approximateTime": zod.string().min(1).max(createTrafficReportBodyOriginalReportApproximateTimeMax),
   "description": zod.string().min(createTrafficReportBodyOriginalReportDescriptionMin).max(createTrafficReportBodyOriginalReportDescriptionMax),
   "frequency": zod.enum(['One time', 'A few times', 'Happens often', 'Happens every day']),
@@ -259,6 +261,7 @@ export const createTrafficReportResponseOriginalReportPinLatitudeMax = 90;
 export const createTrafficReportResponseOriginalReportPinLongitudeMin = -180;
 export const createTrafficReportResponseOriginalReportPinLongitudeMax = 180;
 
+export const createTrafficReportResponseOriginalReportDateRegExp = new RegExp('^\\d{4}-\\d{2}-\\d{2}$');
 export const createTrafficReportResponseOriginalReportApproximateTimeMax = 100;
 
 export const createTrafficReportResponseOriginalReportDescriptionMin = 15;
@@ -287,7 +290,7 @@ export const CreateTrafficReportResponse = zod.object({
   "searchedAddress": zod.string().max(createTrafficReportResponseOriginalReportSearchedAddressMax).nullable(),
   "pinLatitude": zod.number().min(createTrafficReportResponseOriginalReportPinLatitudeMin).max(createTrafficReportResponseOriginalReportPinLatitudeMax).nullable(),
   "pinLongitude": zod.number().min(createTrafficReportResponseOriginalReportPinLongitudeMin).max(createTrafficReportResponseOriginalReportPinLongitudeMax).nullable(),
-  "date": zod.coerce.date(),
+  "date": zod.string().regex(createTrafficReportResponseOriginalReportDateRegExp),
   "approximateTime": zod.string().min(1).max(createTrafficReportResponseOriginalReportApproximateTimeMax),
   "description": zod.string().min(createTrafficReportResponseOriginalReportDescriptionMin).max(createTrafficReportResponseOriginalReportDescriptionMax),
   "frequency": zod.enum(['One time', 'A few times', 'Happens often', 'Happens every day']),
@@ -316,5 +319,21 @@ export const CreateTrafficReportResponse = zod.object({
   "description": zod.string()
 }),zod.null()])
 })
+
+
+/**
+ * @summary Establish a private persistent resident browser session
+ */
+export const EnsureResidentReportSessionResponse = zod.void()
+
+
+/**
+ * @summary Read evidence belonging to an authorized report
+ */
+export const ReadTrafficReportEvidenceParams = zod.object({
+  "reportId": zod.coerce.string().uuid()
+})
+
+export const ReadTrafficReportEvidenceResponse = zod.unknown()
 
 

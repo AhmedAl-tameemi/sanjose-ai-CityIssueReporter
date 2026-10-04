@@ -275,6 +275,36 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
+  /reports/session:
+    post:
+      operationId: ensureResidentReportSession
+      tags: [Reports]
+      summary: Establish a private persistent resident browser session
+      responses:
+        "204":
+          description: The resident session is ready for report submission.
+  /reports/{reportId}/evidence:
+    get:
+      operationId: readTrafficReportEvidence
+      tags: [Reports]
+      summary: Read evidence belonging to an authorized report
+      parameters:
+        - in: path
+          name: reportId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Private image for its submitting resident or authenticated staff.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Report or evidence not available to this viewer.
 components:
   schemas:
     HealthStatus:
@@ -414,7 +444,7 @@ components:
           maximum: 180
         date:
           type: string
-          format: date
+          pattern: "^\\d{4}-\\d{2}-\\d{2}$"
         approximateTime:
           type: string
           minLength: 1

@@ -797,3 +797,154 @@ export const useCreateTrafficReport = <TError = ErrorType<ErrorEnvelope>,
       return useMutation(getCreateTrafficReportMutationOptions(options));
     }
 
+export const getEnsureResidentReportSessionUrl = () => {
+
+
+
+
+  return `/api/reports/session`
+}
+
+/**
+ * @summary Establish a private persistent resident browser session
+ */
+export const ensureResidentReportSession = async ( options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getEnsureResidentReportSessionUrl(),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getEnsureResidentReportSessionMutationKey = () => ['ensureResidentReportSession'] as const;
+
+export const getEnsureResidentReportSessionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof ensureResidentReportSession>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof ensureResidentReportSession>>, TError,void, TContext> => {
+
+const mutationKey = getEnsureResidentReportSessionMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof ensureResidentReportSession>>, void> = () => {
+
+
+          return  ensureResidentReportSession(requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type EnsureResidentReportSessionMutationResult = NonNullable<Awaited<ReturnType<typeof ensureResidentReportSession>>>
+
+    export type EnsureResidentReportSessionMutationError = ErrorType<unknown>
+
+
+    /**
+ * @summary Establish a private persistent resident browser session
+ */
+export const useEnsureResidentReportSession = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof ensureResidentReportSession>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof ensureResidentReportSession>>,
+        TError,
+        void,
+        TContext
+      > => {
+      return useMutation(getEnsureResidentReportSessionMutationOptions(options));
+    }
+
+export const getReadTrafficReportEvidenceUrl = (reportId: string,) => {
+
+
+
+
+  return `/api/reports/${reportId}/evidence`
+}
+
+/**
+ * @summary Read evidence belonging to an authorized report
+ */
+export const readTrafficReportEvidence = async (reportId: string, options?: Parameters<typeof customFetch>[1]): Promise<Blob> => {
+
+  return customFetch<Blob>(getReadTrafficReportEvidenceUrl(reportId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getReadTrafficReportEvidenceQueryKey = (reportId: string,) => {
+    return [
+    `/api/reports/${reportId}/evidence`
+    ] as const;
+    }
+
+
+export const getReadTrafficReportEvidenceQueryOptions = <TData = Awaited<ReturnType<typeof readTrafficReportEvidence>>, TError = ErrorType<void>>(reportId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof readTrafficReportEvidence>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getReadTrafficReportEvidenceQueryKey(reportId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof readTrafficReportEvidence>>> = ({ signal }) => readTrafficReportEvidence(reportId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: reportId !== null && reportId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof readTrafficReportEvidence>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ReadTrafficReportEvidenceQueryResult = NonNullable<Awaited<ReturnType<typeof readTrafficReportEvidence>>>
+export type ReadTrafficReportEvidenceQueryError = ErrorType<void>
+
+
+/**
+ * @summary Read evidence belonging to an authorized report
+ */
+
+export function useReadTrafficReportEvidence<TData = Awaited<ReturnType<typeof readTrafficReportEvidence>>, TError = ErrorType<void>>(
+ reportId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof readTrafficReportEvidence>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getReadTrafficReportEvidenceQueryOptions(reportId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+

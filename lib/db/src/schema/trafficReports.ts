@@ -7,6 +7,8 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import type { z } from "zod/v4";
 
 export type TrafficReportOriginal = {
   issueType: string;
@@ -27,6 +29,7 @@ export type TrafficReportEvidence = {
   name: string;
   type: string;
   size: number;
+  objectPath: string;
 };
 
 export type TrafficReportAnalysis = {
@@ -81,3 +84,8 @@ export const trafficReportsTable = pgTable(
 );
 
 export type TrafficReportRecord = typeof trafficReportsTable.$inferSelect;
+export const insertTrafficReportSchema = createInsertSchema(trafficReportsTable).omit({
+  id: true,
+  submittedAt: true,
+});
+export type InsertTrafficReport = z.infer<typeof insertTrafficReportSchema>;

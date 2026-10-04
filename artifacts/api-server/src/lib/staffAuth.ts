@@ -7,7 +7,7 @@ const staffSessionTtlSeconds = 8 * 60 * 60;
 const residentPreviewTtlSeconds = 24 * 60 * 60;
 const residentOwnerTtlSeconds = 5 * 365 * 24 * 60 * 60;
 const evidenceObjectPathPattern = /^\/objects\/evidence\/[a-f0-9-]{36}$/i;
-const residentOwnerIdPattern = /^[a-f0-9-]{36}$/i;
+const residentOwnerIdPattern = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 
 export type StaffRole = "city-evidence-reviewer" | "city-admin";
 
