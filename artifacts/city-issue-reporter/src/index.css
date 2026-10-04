@@ -28,22 +28,22 @@
   --font-mono: var(--app-font-mono);
 }
 
-/* San José civic palette: bay teal, warm paper, and signal yellow. */
+/* Soft civic palette: pastel mint, warm ivory, and gentle lemon. */
 :root {
-  --background: 48 35% 95%;
+  --background: 48 35% 98%;
   --foreground: 188 42% 16%;
-  --border: 43 20% 80%;
-  --input: 43 18% 72%;
+  --border: 174 18% 85%;
+  --input: 174 16% 72%;
   --ring: 174 66% 25%;
   --card: 47 40% 99%;
   --card-foreground: 188 42% 16%;
-  --primary: 176 68% 23%;
+  --primary: 176 38% 32%;
   --primary-foreground: 48 40% 98%;
-  --secondary: 74 57% 87%;
+  --secondary: 174 30% 92%;
   --secondary-foreground: 188 48% 18%;
-  --muted: 48 24% 89%;
+  --muted: 174 20% 94%;
   --muted-foreground: 188 15% 38%;
-  --accent: 60 92% 55%;
+  --accent: 55 76% 82%;
   --accent-foreground: 188 48% 15%;
   --destructive: 4 65% 42%;
   --destructive-foreground: 48 40% 98%;
@@ -51,8 +51,11 @@
   --app-font-serif: 'Instrument Serif', Georgia, serif;
   --app-font-mono: 'Space Mono', monospace;
   --radius: 0.75rem;
-  --shadow-card: 0 18px 48px rgba(10, 63, 65, 0.13);
-  --shadow-soft: 0 7px 20px rgba(10, 63, 65, 0.09);
+  --surface-mint: 174 32% 92%;
+  --surface-lemon: 55 70% 95%;
+  --surface-blue: 190 32% 94%;
+  --shadow-card: 0 12px 32px rgba(37, 74, 70, 0.06);
+  --shadow-soft: 0 5px 18px rgba(37, 74, 70, 0.05);
 }
 
 .dark {
@@ -107,7 +110,7 @@
   }
 
   :focus-visible {
-    outline: 3px solid hsl(var(--accent));
+    outline: 3px solid hsl(var(--ring));
     outline-offset: 3px;
   }
 }
@@ -193,7 +196,7 @@
 }
 
 .header-note {
-  color: hsl(48 32% 87%);
+  color: hsl(var(--muted-foreground));
   font-size: 12px;
 }
 
@@ -233,10 +236,10 @@
   align-items: center;
   gap: 7px;
   padding: 0 11px;
-  border: 1px solid hsl(48 40% 98% / 0.45);
+  border: 1px solid hsl(var(--border));
   border-radius: 5px;
-  background: hsl(178 71% 15%);
-  color: hsl(48 40% 98%);
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
   direction: ltr;
 }
 
@@ -291,7 +294,7 @@
   display: inline-flex;
   align-items: center;
   gap: 9px;
-  color: hsl(var(--accent));
+  color: hsl(var(--primary));
   font-family: var(--app-font-mono);
   font-size: 10px;
   font-weight: 700;
@@ -309,7 +312,7 @@
 
 .intro h1 {
   margin: 23px 0 20px;
-  color: hsl(48 40% 98%);
+  color: hsl(var(--foreground));
   font-family: var(--app-font-sans);
   font-size: clamp(45px, 5.1vw, 68px);
   font-weight: 700;
@@ -318,13 +321,13 @@
 }
 
 .intro h1 em {
-  color: hsl(var(--accent));
+  color: hsl(var(--primary));
   font-style: normal;
 }
 
 .intro-copy {
   max-width: 355px;
-  color: hsl(48 28% 85%);
+  color: hsl(var(--muted-foreground));
   font-size: 15px;
   line-height: 1.68;
 }
@@ -334,7 +337,7 @@
   gap: 17px;
   margin: 36px 0 0;
   padding: 25px 0 0;
-  border-top: 1px solid hsl(48 40% 98% / 0.22);
+  border-top: 1px solid hsl(var(--primary) / 0.16);
   list-style: none;
 }
 
@@ -349,17 +352,17 @@
 .trust-icon {
   flex: 0 0 auto;
   margin-top: 1px;
-  color: hsl(var(--accent));
+  color: hsl(var(--primary));
 }
 
 .trust-list strong {
   display: block;
-  color: hsl(48 40% 98%);
+  color: hsl(var(--foreground));
   font-weight: 700;
 }
 
 .trust-list span {
-  color: hsl(48 28% 82%);
+  color: hsl(var(--muted-foreground));
 }
 
 .form-panel {
@@ -393,13 +396,13 @@
 
 .form-header p {
   margin: 7px 0 0;
-  color: hsl(48 28% 83%);
+  color: hsl(var(--muted-foreground));
   font-size: 13px;
 }
 
 .step-count {
   padding-top: 4px;
-  color: hsl(var(--accent));
+  color: hsl(var(--primary));
   font-family: var(--app-font-mono);
   font-size: 11px;
   white-space: nowrap;
@@ -410,13 +413,13 @@
   overflow: hidden;
   margin-top: 22px;
   border-radius: 99px;
-  background: hsl(48 40% 98% / 0.22);
+  background: hsl(var(--primary) / 0.12);
 }
 
 .progress-value {
   height: 100%;
   border-radius: inherit;
-  background: hsl(var(--accent));
+  background: hsl(var(--primary));
   transition: width 0.4s ease;
 }
 
@@ -791,13 +794,13 @@
 }
 
 .button-primary {
-  background: hsl(178 71% 19%);
+  background: hsl(var(--primary));
   box-shadow: 0 4px 0 hsl(178 75% 13%);
   color: hsl(48 40% 98%);
 }
 
 .button-primary:hover {
-  background: hsl(178 71% 24%);
+  background: hsl(176 38% 27%);
   box-shadow: 0 5px 0 hsl(178 75% 13%);
 }
 
@@ -999,11 +1002,11 @@
 
 .confirmation-top {
   padding: 45px 55px 40px;
-  border-bottom: 1px solid hsl(48 40% 98% / 0.18);
+  border-bottom: 1px solid hsl(var(--border));
   background:
     linear-gradient(90deg, hsl(var(--accent)) 0 9px, transparent 9px),
-    hsl(178 71% 19%);
-  color: hsl(48 40% 98%);
+    hsl(var(--surface-mint));
+  color: hsl(var(--foreground));
   text-align: center;
 }
 
@@ -1032,7 +1035,7 @@
 .confirmation-top p {
   max-width: 495px;
   margin: 16px auto 0;
-  color: hsl(48 28% 85%);
+  color: hsl(var(--muted-foreground));
   font-size: 14px;
   line-height: 1.6;
 }
@@ -1067,7 +1070,7 @@
 }
 
 .confirmation-top .hint {
-  color: hsl(48 28% 85%);
+  color: hsl(var(--muted-foreground));
 }
 
 .confirmation-safety {
@@ -1647,24 +1650,23 @@
   }
 }
 
-/* Refined civic-service presentation: quiet paper, deliberate teal, sparing signal yellow. */
+/* Clean pastel surfaces, with stronger teal reserved for text and actions. */
 .app-shell {
   overflow-x: clip;
-  background:
-    radial-gradient(ellipse at 15% 0%, hsl(60 92% 55% / 0.11), transparent 34rem),
-    hsl(var(--background));
+  background: hsl(var(--background));
   background-size: auto;
 }
 
 .app-shell::before {
-  opacity: 0.035;
+  display: none;
 }
 
 .site-header {
   min-height: 72px;
   padding-inline: max(calc((100% - 1260px) / 2), 32px);
   border-bottom-width: 3px;
-  background: hsl(178 71% 19%);
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
 }
 
 .brand {
@@ -1690,15 +1692,16 @@
   min-height: 42px;
   align-items: center;
   padding-inline: 13px;
-  border: 1px solid hsl(48 40% 98% / 0.25);
+  border: 1px solid hsl(var(--border));
   border-radius: 8px;
-  color: hsl(48 40% 98%);
+  color: hsl(var(--primary));
+  background: hsl(var(--surface-mint));
   transition: background-color 160ms ease, border-color 160ms ease;
 }
 
 .header-history-link:hover {
-  border-color: hsl(var(--accent));
-  background: hsl(178 71% 15%);
+  border-color: hsl(var(--primary) / 0.4);
+  background: hsl(174 32% 88%);
   text-decoration: none;
 }
 
@@ -1722,8 +1725,9 @@
   padding: clamp(28px, 3vw, 40px);
   border-left-width: 5px;
   border-radius: 14px;
-  background: hsl(178 71% 19%);
-  box-shadow: 0 14px 38px hsl(188 42% 16% / 0.13);
+  background: hsl(var(--surface-mint));
+  color: hsl(var(--foreground));
+  box-shadow: var(--shadow-card);
 }
 
 .intro h1 {
@@ -1748,12 +1752,14 @@
   border: 1px solid hsl(var(--border));
   border-top: 4px solid hsl(var(--accent));
   border-radius: 14px;
-  box-shadow: 0 16px 44px hsl(188 42% 16% / 0.1);
+  box-shadow: var(--shadow-card);
 }
 
 .form-header {
   padding: 27px 32px 23px;
-  background: hsl(178 71% 19%);
+  background: hsl(var(--surface-mint));
+  color: hsl(var(--foreground));
+  border-bottom-color: hsl(var(--border));
 }
 
 .form-header h2 {
@@ -1816,15 +1822,15 @@
   padding: 14px;
   border-color: hsl(var(--border));
   border-radius: 9px;
-  background: hsl(169 31% 94%);
+  background: hsl(var(--surface-mint));
 }
 
 .choice:nth-child(3n + 2) {
-  background: hsl(60 75% 93%);
+  background: hsl(var(--surface-lemon));
 }
 
 .choice:nth-child(3n) {
-  background: hsl(184 36% 92%);
+  background: hsl(var(--surface-blue));
 }
 
 .choice:hover {
@@ -1835,7 +1841,8 @@
 
 .choice.selected {
   border-color: hsl(var(--primary));
-  background: hsl(178 71% 19%);
+  background: hsl(174 32% 85%);
+  color: hsl(var(--foreground));
   box-shadow: inset 0 0 0 1px hsl(var(--primary));
 }
 
@@ -1875,7 +1882,7 @@
 
 .form-footer {
   padding: 20px 32px 24px;
-  background: hsl(60 68% 92%);
+  background: hsl(var(--surface-lemon));
 }
 
 .button {
@@ -1885,11 +1892,11 @@
 }
 
 .button-primary {
-  box-shadow: 0 3px 0 hsl(178 75% 13%);
+  box-shadow: 0 2px 5px hsl(var(--primary) / 0.15);
 }
 
 .button-primary:hover {
-  box-shadow: 0 4px 0 hsl(178 75% 13%);
+  box-shadow: 0 3px 8px hsl(var(--primary) / 0.2);
 }
 
 .button-secondary {
@@ -1935,13 +1942,44 @@
 .evidence-remove:focus-visible,
 .header-history-link:focus-visible,
 .language-selector:focus-within {
-  outline: 3px solid hsl(var(--accent));
+  outline: 3px solid hsl(var(--ring));
   outline-offset: 3px;
 }
 
 .step-heading:focus,
 #confirmation-heading:focus {
   outline: none;
+}
+
+.choice-icon,
+.choice.selected .choice-icon {
+  background: hsl(var(--card));
+  color: hsl(var(--primary));
+}
+
+.choice-check {
+  color: hsl(var(--primary));
+}
+
+.summary-item,
+.staff-translation > div,
+.next-step {
+  background: hsl(var(--surface-mint));
+}
+
+.summary-item:nth-child(4n + 2),
+.summary-item:nth-child(4n + 3),
+.next-step:nth-child(2) {
+  background: hsl(var(--surface-lemon));
+}
+
+.not-found > div {
+  background: hsl(var(--surface-mint));
+  color: hsl(var(--foreground));
+}
+
+.not-found p {
+  color: hsl(var(--muted-foreground));
 }
 
 @media (max-width: 850px) {
