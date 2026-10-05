@@ -7,12 +7,12 @@ import NotFound from '@/pages/not-found';
 import ConfirmationPage from './pages/ConfirmationPage';
 import ReportPage from './pages/ReportPage';
 import ReportHistoryPage from './pages/ReportHistoryPage';
-import IncidentMapPage from './pages/IncidentMapPage';
-import AccidentsPage from './pages/AccidentsPage';
+import AccidentsHubPage from './pages/AccidentsHubPage';
 import { LanguageProvider } from './i18n';
 import {
   Route,
   Switch,
+  Redirect,
   useLocation,
   Router as WouterRouter,
 } from 'wouter';
@@ -28,8 +28,8 @@ function Router() {
         <Route path="/" component={ReportPage} />
         <Route path="/confirmation" component={ConfirmationPage} />
         <Route path="/history" component={ReportHistoryPage} />
-        <Route path="/incident-map" component={IncidentMapPage} />
-        <Route path="/accidents" component={AccidentsPage} />
+        <Route path="/incident-map"><Redirect to="/accidents?view=map" /></Route>
+        <Route path="/accidents" component={AccidentsHubPage} />
         <Route component={NotFound} />
       </Switch>
     </RoutedErrorBoundary>

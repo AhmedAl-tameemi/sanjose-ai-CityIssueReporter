@@ -1,0 +1,7 @@
+.accident-views { display:flex; gap:4px; width:fit-content; max-width:100%; padding:4px; margin-bottom:20px; border:1px solid hsl(var(--border)); border-radius:12px; background:hsl(var(--card)); }
+.accident-views a { display:flex; align-items:center; justify-content:center; gap:8px; min-height:42px; padding:8px 18px; border-radius:8px; color:hsl(var(--muted-foreground)); font-size:13px; font-weight:700; text-decoration:none; transition:background-color 150ms ease; }
+.accident-views a.active { color:hsl(var(--primary)); background:hsl(var(--surface-mint)); }
+.accident-views a:hover { color:hsl(var(--primary)); background:hsl(var(--surface-lemon)); }
+.accident-views a:focus-visible { outline:2px solid hsl(var(--primary)); outline-offset:2px; }
+.accident-views svg { flex-shrink:0; }
+@media (prefers-reduced-motion:reduce) { .accident-views a { transition:none; } }

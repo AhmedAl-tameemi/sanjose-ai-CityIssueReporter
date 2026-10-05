@@ -8,6 +8,7 @@ import {
 } from '@workspace/api-client-react';
 import { useLanguage } from '../i18n';
 import AppNavigation from '../components/AppNavigation';
+import AccidentViewSwitcher from '../components/AccidentViewSwitcher';
 import LanguageControl from '../components/LanguageControl';
 import '../incident-map.css';
 import '../accidents.css';
@@ -86,6 +87,7 @@ export default function AccidentsPage() {
       <AppNavigation />
       <main className="page-wrap">
         <div className="im-page ac-page" lang="en" dir="ltr">
+          <AccidentViewSwitcher />
           <span className="eyebrow" lang={language} dir={direction}>{t('accidentsNav')}</span>
           <h1>City traffic collisions</h1>
           <p className="im-lede">

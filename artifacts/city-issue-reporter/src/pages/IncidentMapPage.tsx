@@ -11,6 +11,7 @@ import {
 } from '@workspace/api-client-react';
 import { useLanguage } from '../i18n';
 import AppNavigation from '../components/AppNavigation';
+import AccidentViewSwitcher from '../components/AccidentViewSwitcher';
 import LanguageControl from '../components/LanguageControl';
 import '../incident-map.css';
 
@@ -70,7 +71,7 @@ export default function IncidentMapPage() {
 
   useEffect(() => {
     const previousTitle = document.title;
-    document.title = 'Incident map | TrafficSignal';
+    document.title = 'Accidents — Map | TrafficSignal';
     return () => { document.title = previousTitle; };
   }, []);
 
@@ -160,7 +161,8 @@ export default function IncidentMapPage() {
       <AppNavigation />
       <main className="page-wrap">
         <div className="im-page" lang="en" dir="ltr">
-          <span className="eyebrow" lang={language} dir={direction}>{t('incidentMapNav')}</span>
+          <AccidentViewSwitcher />
+          <span className="eyebrow" lang={language} dir={direction}>{t('accidentsNav')}</span>
           <h1>Historical traffic collisions</h1>
           <p className="im-lede">
             Published City of San José collision records. This is historical data, not live emergencies and not reports submitted to TrafficSignal. For emergencies, call 911.
