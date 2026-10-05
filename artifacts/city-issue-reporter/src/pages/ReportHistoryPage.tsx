@@ -12,6 +12,8 @@ import type { TrafficReport } from '@workspace/api-client-react';
 import { frequencyTranslationKeys, issueTranslationKeys, useLanguage } from '../i18n';
 import { historyText, type HistoryKey } from '../historyI18n';
 import '../history.css';
+import AppNavigation from '../components/AppNavigation';
+import LanguageControl from '../components/LanguageControl';
 
 function errorMessage(err: unknown): string {
   const e = err as { data?: { error?: string }; message?: string } | null;
@@ -117,7 +119,10 @@ export default function ReportHistoryPage() {
           <span className="brand-mark" aria-hidden="true"><MapPin /></span>
           <span className="brand-name">TrafficSignal</span>
         </Link>
-        <Link className="button button-secondary" href="/" data-testid="link-new-report">{h('newReport')}</Link>
+        <div className="header-actions">
+          <Link className="button button-secondary" href="/?view=report" data-testid="link-new-report">{h('newReport')}</Link>
+          <LanguageControl />
+        </div>
       </header>
       <main className="page-wrap history-page">
         <section className="history-hero">
@@ -139,8 +144,8 @@ export default function ReportHistoryPage() {
           {data && <span className="hint" data-testid="text-history-count">{h('count', reports.length)}</span>}
         </div>
 
-        <section className="history-staff" lang="en" dir="ltr" aria-labelledby="staff-h">
-          <h2 id="staff-h">{historyText('en', 'staffTitle')}</h2>
+        <details className="history-staff" open={viewer === 'staff' ? true : undefined} lang="en" dir="ltr">
+          <summary id="staff-h" data-testid="toggle-staff-access">{historyText('en', 'staffTitle')}</summary>
           {viewer === 'staff' ? (
             <button type="button" className="button button-secondary" onClick={onLogout} disabled={busy} data-testid="button-staff-logout">
               Sign out of staff view
@@ -159,7 +164,7 @@ export default function ReportHistoryPage() {
             </form>
           )}
           {authError && <p className="history-error" role="alert" data-testid="text-staff-error">{authError}</p>}
-        </section>
+        </details>
 
         {loading ? (
           <div className="history-list" role="status" aria-label={h('loading')} data-testid="state-history-loading">
@@ -177,7 +182,7 @@ export default function ReportHistoryPage() {
           <div className="history-state" data-testid="state-history-empty">
             <h2>{h('emptyTitle')}</h2>
             <p>{h('emptyText')}</p>
-            <Link className="button button-primary" href="/" data-testid="link-empty-report">{h('newReport')}</Link>
+            <Link className="button button-primary" href="/?view=report" data-testid="link-empty-report">{h('newReport')}</Link>
           </div>
         ) : (
           <ol className="history-list">
@@ -238,6 +243,7 @@ export default function ReportHistoryPage() {
           </ol>
         )}
       </main>
+      <AppNavigation />
     </div>
   );
 }

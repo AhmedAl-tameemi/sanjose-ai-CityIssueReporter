@@ -5,23 +5,20 @@ import {
   AlertTriangle,
   CarFront,
   Check,
-  ChevronDown,
   CircleHelp,
-  Globe,
   ImagePlus,
   KeyRound,
   Lightbulb,
   MapPin,
-  MessageSquareText,
-  ShieldCheck,
-  Sparkles,
   Trash2,
   X,
 } from 'lucide-react';
-import { Link, useLocation } from 'wouter';
+import { Link, useLocation, useSearch } from 'wouter';
 import { translateReport, getListTrafficReportsQueryKey } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 import AddressMap from '../components/AddressMap';
+import AppNavigation from '../components/AppNavigation';
+import ResidentHome from '../components/ResidentHome';
 import {
   blankDraft,
   frequencies,
@@ -36,10 +33,9 @@ import { readDraft, removeDraft, saveDraft, saveReport } from '../reportStorage'
 import {
   frequencyTranslationKeys,
   issueTranslationKeys,
-  languages,
   useLanguage,
-  type LanguageCode,
 } from '../i18n';
+import LanguageControl from '../components/LanguageControl';
 import { useResidentEvidencePreview } from '../lib/evidencePreview';
 import { assessReportSafety } from '../lib/reportSafety';
 import { clearPendingSubmission, submitPersistentReport } from '../lib/reportSubmission';
@@ -75,7 +71,9 @@ function FieldLabel({ children, optional }: { children: string; optional?: boole
 }
 
 export default function ReportPage() {
-  const { language, direction, setLanguage, t } = useLanguage();
+  const { language, direction, t } = useLanguage();
+  const search = useSearch();
+  const isReportView = new URLSearchParams(search).get('view') === 'report';
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState<ReportDraft>(() => readDraft());
@@ -108,8 +106,9 @@ export default function ReportPage() {
   }, [draft]);
 
   useEffect(() => {
-    headingRef.current?.focus();
-  }, [step]);
+    if (isReportView) headingRef.current?.focus();
+    else setIsSearchingLocation(false);
+  }, [step, isReportView]);
 
   const progress = useMemo(() => `${(step / 3) * 100}%`, [step]);
 
@@ -389,51 +388,18 @@ export default function ReportPage() {
         <div className="header-actions">
           <Link className="header-history-link" href="/history" data-testid="link-report-history">{t('historyNav')}</Link>
           <span className="header-note">{t('headerNote')}</span>
-          <label className="language-selector">
-            <Globe size={16} aria-hidden="true" />
-            <select
-              value={language}
-              onChange={(event) => setLanguage(event.target.value as LanguageCode)}
-              aria-label={t('languageLabel')}
-              data-testid="select-language"
-            >
-              {languages.map((item) => (
-                <option key={item.code} value={item.code}>{item.label}</option>
-              ))}
-            </select>
-            <ChevronDown size={14} aria-hidden="true" />
-          </label>
+          <LanguageControl />
         </div>
       </header>
 
-      <main className="page-wrap home-grid">
-        <section className="intro" aria-labelledby="intro-heading">
-          <span className="eyebrow">{t('eyebrow')}</span>
-          <h1 id="intro-heading">{t('heroLead')}<br /><em>{t('heroAction')}</em></h1>
-          <p className="intro-copy">
-            {t('intro')}
-          </p>
-          <ul className="trust-list" aria-label={t('trustNextTitle')}>
-            <li>
-              <ShieldCheck className="trust-icon" size={18} />
-              <div><strong>{t('trustBuiltTitle')}</strong><span>{t('trustBuiltText')}</span></div>
-            </li>
-            <li>
-              <MessageSquareText className="trust-icon" size={18} />
-              <div><strong>{t('trustTimeTitle')}</strong><span>{t('trustTimeText')}</span></div>
-            </li>
-            <li>
-              <Sparkles className="trust-icon" size={18} />
-              <div><strong>{t('trustNextTitle')}</strong><span>{t('trustNextText')}</span></div>
-            </li>
-          </ul>
-        </section>
-
+      <main className={`page-wrap ${isReportView ? 'report-workspace' : 'resident-home'}`}>
+        {!isReportView && <ResidentHome />}
+        {isReportView && (
         <section className="form-panel" aria-labelledby="form-heading">
           <div className="form-header">
             <div className="form-header-row">
               <div>
-                <h2 id="form-heading">{t('formTitle')}</h2>
+                <h1 id="form-heading">{t('formTitle')}</h1>
                 <p>{t('requiredNote')}</p>
               </div>
               <span className="step-count" aria-label={t('stepOf', { step })}>0{step} / 03</span>
@@ -646,7 +612,9 @@ export default function ReportPage() {
             </div>
           </form>
         </section>
+        )}
       </main>
+      <AppNavigation />
     </div>
   );
 }

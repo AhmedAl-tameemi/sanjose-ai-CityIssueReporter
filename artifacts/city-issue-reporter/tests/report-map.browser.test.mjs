@@ -183,7 +183,7 @@ async function openReport({
       body: JSON.stringify(result),
     });
   });
-  await page.goto(baseUrl);
+  await page.goto(`${baseUrl}?view=report`);
   await page.getByTestId("select-language").selectOption("en");
   await page.getByTestId("map-pin").waitFor({ state: "visible" });
   return page;

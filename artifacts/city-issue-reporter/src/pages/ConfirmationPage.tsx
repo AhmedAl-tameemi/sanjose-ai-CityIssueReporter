@@ -11,6 +11,8 @@ import {
   useLanguage,
 } from '../i18n';
 import { assessReportSafety, type ReportSafetyConsequence } from '../lib/reportSafety';
+import AppNavigation from '../components/AppNavigation';
+import LanguageControl from '../components/LanguageControl';
 
 const safetyRiskTranslationKeys = {
   injury: 'riskInjury',
@@ -26,11 +28,13 @@ export default function ConfirmationPage() {
   const [report] = useState(readReport);
   const [copied, setCopied] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const languageInitialized = useRef(false);
 
   useEffect(() => {
     headingRef.current?.focus();
-    if (report?.language && report.language !== language) {
-      setLanguage(report.language);
+    if (!languageInitialized.current && report?.language) {
+      languageInitialized.current = true;
+      if (report.language !== language) setLanguage(report.language);
     }
   }, [language, report?.language, setLanguage]);
 
@@ -44,14 +48,16 @@ export default function ConfirmationPage() {
       <div className="app-shell" dir={direction}>
         <header className="site-header">
           <Link className="brand" href="/" data-testid="link-brand-empty"><span className="brand-mark" aria-hidden="true"><MapPin /></span><span className="brand-name">{t('brandName')}</span></Link>
+          <LanguageControl />
         </header>
         <main className="page-wrap not-found">
           <div>
             <h1>{t('nothingTitle')}</h1>
             <p>{t('nothingText')}</p>
-            <Link className="button button-primary" href="/" data-testid="link-start-report">{t('startReport')}</Link>
+            <Link className="button button-primary" href="/?view=report" data-testid="link-start-report">{t('startReport')}</Link>
           </div>
         </main>
+        <AppNavigation />
       </div>
     );
   }
@@ -72,7 +78,7 @@ export default function ConfirmationPage() {
   };
 
   const startAnother = () => {
-    setLocation('/');
+    setLocation('/?view=report');
   };
 
   return (
@@ -82,7 +88,10 @@ export default function ConfirmationPage() {
           <span className="brand-mark" aria-hidden="true"><MapPin /></span>
           <span className="brand-name">{t('brandName')}</span>
         </Link>
-        <Link className="header-history-link" href="/history" data-testid="link-report-history-confirmation">{t('historyNav')}</Link>
+        <div className="header-actions">
+          <Link className="header-history-link" href="/history" data-testid="link-report-history-confirmation">{t('historyNav')}</Link>
+          <LanguageControl />
+        </div>
       </header>
       <main className="page-wrap confirmation-page">
         <article className="confirmation-card" aria-labelledby="confirmation-heading">
@@ -184,6 +193,7 @@ export default function ConfirmationPage() {
           </div>
         </article>
       </main>
+      <AppNavigation />
     </div>
   );
 }
