@@ -76,7 +76,8 @@ export default function AddressMap({ draft, error, onPatch, onError, onSearching
   const patchRef = useRef(onPatch);
   const [searching, setSearching] = useState(false);
   const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'success' | 'denied' | 'unavailable'>('idle');
-  const applyPointRef = useRef<(point: Point) => void>(() => undefined);
+  const applyPointRef = useRef<(point: Point, recenter?: boolean) => void>(() => undefined);
+  const locationRequest = useRef(0);
   translateRef.current = t;
   draftRef.current = draft;
   patchRef.current = onPatch;
@@ -103,7 +104,7 @@ export default function AddressMap({ draft, error, onPatch, onError, onSearching
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 19,
     }).addTo(instance);
-    const applyPoint = (pin: Point) => {
+    const applyPoint = (pin: Point, recenter = false) => {
       lookupController.current?.abort();
       const controller = new AbortController();
       lookupController.current = controller;
@@ -116,7 +117,7 @@ export default function AddressMap({ draft, error, onPatch, onError, onSearching
         pinLatitude: pin.lat,
         pinLongitude: pin.lng,
       });
-      instance.setView([pin.lat, pin.lng], 17);
+      if (recenter) instance.setView([pin.lat, pin.lng], 17);
       marker.current?.setLatLng([pin.lat, pin.lng]);
       marker.current?.dragging?.enable();
       void lookup(
@@ -133,9 +134,11 @@ export default function AddressMap({ draft, error, onPatch, onError, onSearching
       });
     };
     applyPointRef.current = applyPoint;
-    const onDrag = async () => {
+    const onDrag = () => {
       const position = marker.current?.getLatLng();
       if (!position) return;
+      locationRequest.current += 1;
+      setLocationStatus('idle');
       applyPoint({ lat: position.lat, lng: position.lng });
     };
     const createMarker = (position: Point) => {
@@ -149,6 +152,7 @@ export default function AddressMap({ draft, error, onPatch, onError, onSearching
     requestAnimationFrame(() => { if (active) instance.invalidateSize(); });
     return () => {
       active = false;
+      locationRequest.current += 1;
       lookupController.current?.abort();
       lookupController.current = null;
       marker.current = null;
@@ -165,15 +169,17 @@ export default function AddressMap({ draft, error, onPatch, onError, onSearching
       setLocationStatus('unavailable');
       return;
     }
+    const request = ++locationRequest.current;
     setLocationStatus('loading');
     navigator.geolocation.getCurrentPosition(
       ({ coords }) => {
-        if (!map.current) return;
+        if (!map.current || request !== locationRequest.current) return;
         setLocationStatus('success');
         onError(undefined);
-        applyPointRef.current({ lat: coords.latitude, lng: coords.longitude });
+        applyPointRef.current({ lat: coords.latitude, lng: coords.longitude }, true);
       },
       (error) => {
+        if (!map.current || request !== locationRequest.current) return;
         if (error.code === error.PERMISSION_DENIED) setLocationStatus('denied');
         else setLocationStatus('unavailable');
       },
@@ -182,6 +188,8 @@ export default function AddressMap({ draft, error, onPatch, onError, onSearching
   };
 
   const editAddress = (value: string) => {
+    locationRequest.current += 1;
+    setLocationStatus('idle');
     lookupController.current?.abort();
     setSearching(false);
     onSearching(false);
@@ -190,6 +198,8 @@ export default function AddressMap({ draft, error, onPatch, onError, onSearching
   };
 
   const search = async () => {
+    locationRequest.current += 1;
+    setLocationStatus('idle');
     const address = draft.location.trim();
     if (!address) {
       onError(t('errorRequired'));
@@ -250,7 +260,8 @@ export default function AddressMap({ draft, error, onPatch, onError, onSearching
           type="button"
           className="button button-secondary current-location-button"
           onClick={useCurrentLocation}
-          disabled={locationStatus === 'loading'}
+          disabled={locationStatus === 'loading' || searching}
+          aria-busy={locationStatus === 'loading'}
           aria-describedby="location-permission-note"
           data-testid="button-use-current-location"
         >

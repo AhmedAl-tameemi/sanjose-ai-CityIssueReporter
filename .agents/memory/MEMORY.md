@@ -7,3 +7,4 @@
 - [Playwright WebKit on Replit](playwright-webkit-nix.md) — headless WebKit needs its bundled WPE libraries and Replit’s Nix library paths preserved together.
 - [Brand continuity](brand-continuity.md) — TrafficSignal UX improvements should preserve the existing palette, logo, branding, and identity rather than rebrand.
 - [App-first interface](app-first-interface.md) — keep TrafficSignal task-focused and mobile-first, without marketing layouts or changes to its existing feature/data contracts.
+- [Incident location permission](incident-location-permission.md) — device location helps select an incident location; keep it optional and one-time, not ongoing resident tracking.

@@ -548,6 +548,32 @@
   width: 100%;
 }
 
+.location-permission {
+  display: grid;
+  gap: 10px;
+  margin: 4px 0 8px;
+  padding: 14px;
+  border: 1px solid hsl(var(--primary) / .2);
+  border-radius: 10px;
+  background: hsl(var(--surface-mint));
+}
+
+.location-permission .current-location-button {
+  width: 100%;
+  min-height: 44px;
+}
+
+.location-status {
+  margin: 0;
+  color: hsl(var(--primary));
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.location-status-error {
+  color: hsl(var(--destructive));
+}
+
 .address-map-frame {
   position: relative;
   width: 100%;
