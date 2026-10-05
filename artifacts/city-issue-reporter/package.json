@@ -9,7 +9,8 @@
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --experimental-strip-types --test $(find tests -maxdepth 1 -type f -name '*.test.mjs' ! -name '*.browser.test.mjs' -print)",
-    "test:browser": "node ./node_modules/playwright-core/cli.js install webkit && node --test tests/*.browser.test.mjs"
+    "test:browser": "node ./node_modules/playwright-core/cli.js install webkit firefox && node --test tests/*.browser.test.mjs && TEST_BROWSER=webkit node --test tests/report-recording.browser.test.mjs && TEST_BROWSER=firefox node --test tests/report-recording.browser.test.mjs",
+    "test:playback": "node ./node_modules/playwright-core/cli.js install webkit firefox && node --test tests/report-recording.browser.test.mjs && TEST_BROWSER=webkit node --test tests/report-recording.browser.test.mjs && TEST_BROWSER=firefox node --test tests/report-recording.browser.test.mjs"
   },
   "devDependencies": {
     "@hookform/resolvers": "^3.10.0",

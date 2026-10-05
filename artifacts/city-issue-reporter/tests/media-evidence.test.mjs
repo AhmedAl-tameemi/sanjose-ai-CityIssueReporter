@@ -13,6 +13,16 @@ import { evidenceRows } from '../src/evidenceI18n.ts';
 import { readDraft, saveDraft } from '../src/reportStorage.ts';
 import { blankDraft } from '../src/types/report.ts';
 import { getSubmissionId, submissionStorageKey } from '../src/lib/submissionIdentity.ts';
+import { portableMedia } from './fixtures/media.mjs';
+
+test('portable playback fixtures cover every advertised audio/video container', () => {
+  const mediaTypes = supportedEvidenceTypes.filter((type) => /^(audio|video)\//.test(type));
+  assert.deepEqual(
+    portableMedia.filter((file) => /^(audio|video)\//.test(file.type)).map((file) => file.type).sort(),
+    [...mediaTypes].sort(),
+  );
+  assert.ok(portableMedia.every((file) => file.bytes.length > 20));
+});
 
 test('normalizes recorded MIME types and common mobile audio aliases', () => {
   assert.equal(evidenceContentType('audio/webm;codecs=opus'), 'audio/webm');
