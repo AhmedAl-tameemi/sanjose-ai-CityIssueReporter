@@ -1,4 +1,4 @@
-import { db, pool, cityAccidentsTable, cityAccidentSyncTable } from "@workspace/db";
+import { db, pool, cityAccidentsTable, cityAccidentSyncTable, cityAccidentProvenance } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import { mapCityFeature, query as queryCitySource } from "./cityIncidents";
 
@@ -73,10 +73,12 @@ async function refreshIfNeeded(): Promise<void> {
     await db.transaction(async (tx) => {
       for (let offset = 0; offset < records.length; offset += 500) {
         await tx.insert(cityAccidentsTable).values(records.slice(offset, offset + 500).map((record) => ({
-          ...record, occurredAt: record.occurredAt ? new Date(record.occurredAt) : null, importedAt: syncedAt,
+          ...record, ...cityAccidentProvenance,
+          occurredAt: record.occurredAt ? new Date(record.occurredAt) : null, importedAt: syncedAt,
         }))).onConflictDoUpdate({
           target: cityAccidentsTable.id,
           set: {
+            ...cityAccidentProvenance,
             latitude: sql`excluded.latitude`, longitude: sql`excluded.longitude`,
             occurredAt: sql`excluded.occurred_at`, year: sql`excluded.year`,
             location: sql`excluded.location`, collisionType: sql`excluded.collision_type`,
