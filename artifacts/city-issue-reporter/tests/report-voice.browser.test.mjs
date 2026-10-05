@@ -93,7 +93,7 @@ test('speech fills choices and text throughout the form, with validated address 
     assert.equal(await page.getByTestId('select-frequency').inputValue(), 'Happens every day');
     await page.getByTestId('button-continue').click();
     assert.equal(await page.getByTestId('input-name').inputValue(), 'Test Resident');
-    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('city-issue-reporter-draft-v2')).evidence), undefined);
+    assert.deepEqual(await page.evaluate(() => JSON.parse(localStorage.getItem('city-issue-reporter-draft-v2')).evidence), []);
     assert.deepEqual(errors, []);
   } finally { await context.close(); }
 });

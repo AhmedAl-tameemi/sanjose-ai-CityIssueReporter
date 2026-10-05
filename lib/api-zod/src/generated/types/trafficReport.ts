@@ -19,7 +19,7 @@ export interface TrafficReport {
   /** @nullable */
   location: string | null;
   originalReport: TrafficReportOriginal;
-  evidence: TrafficReportEvidence | null;
+  evidence: TrafficReportEvidence[];
   analysis: TrafficReportAnalysis | null;
   analysisStatus: TrafficReportAnalysisStatus;
   status: TrafficReportStatus;

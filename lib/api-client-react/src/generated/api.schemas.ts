@@ -176,7 +176,7 @@ export interface TrafficReportEvidenceInput {
 export interface TrafficReportInput {
   clientSubmissionId: string;
   originalReport: TrafficReportOriginal;
-  evidence: TrafficReportEvidenceInput | null;
+  evidence: TrafficReportEvidenceInput | TrafficReportEvidenceInput[] | null;
   /**
      * @minLength 2
      * @maxLength 10
@@ -246,7 +246,7 @@ export interface TrafficReport {
   /** @nullable */
   location: string | null;
   originalReport: TrafficReportOriginal;
-  evidence: TrafficReportEvidence | null;
+  evidence: TrafficReportEvidence[];
   analysis: TrafficReportAnalysis | null;
   analysisStatus: TrafficReportAnalysisStatus;
   status: TrafficReportStatus;

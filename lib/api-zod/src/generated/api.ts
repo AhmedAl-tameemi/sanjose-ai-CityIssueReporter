@@ -18,7 +18,7 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
- * Validates an evidence file and stores it privately. Images are limited to 3 MB, audio to 10 MB, and video to 20 MB.
+ * Validates one evidence file and stores it privately. A report can include up to 5 attachments with a combined size of 25 MiB. Images are limited to 3 MiB, audio to 10 MiB, and video to 20 MiB per file.
  * @summary Upload private photo, audio, or video evidence
  */
 export const UploadEvidenceResponse = zod.object({
@@ -158,11 +158,11 @@ export const ListTrafficReportsResponse = zod.object({
   "email": zod.string().email().max(listTrafficReportsResponseReportsItemOriginalReportEmailMax).nullable(),
   "phone": zod.string().max(listTrafficReportsResponseReportsItemOriginalReportPhoneMax).nullable()
 }),
-  "evidence": zod.union([zod.object({
+  "evidence": zod.array(zod.object({
   "name": zod.string(),
   "type": zod.string(),
   "size": zod.number().int()
-}),zod.null()]),
+})),
   "analysis": zod.union([zod.object({
   "summary": zod.string().max(listTrafficReportsResponseReportsItemAnalysisOneSummaryMax),
   "urgency": zod.enum(['low', 'medium', 'high']),
@@ -184,6 +184,7 @@ export const ListTrafficReportsResponse = zod.object({
 
 
 /**
+ * A report may include up to 5 private evidence files with a combined size of no more than 25 MiB. Existing clients may submit one evidence object.
  * @summary Save a resident traffic-safety report
  */
 export const createTrafficReportBodyOriginalReportLocationMax = 300;
@@ -215,6 +216,15 @@ export const createTrafficReportBodyEvidenceOneSizeMax = 20971520;
 export const createTrafficReportBodyEvidenceOneObjectPathRegExp = new RegExp('^/objects/evidence/[a-f0-9-]{36}$');
 export const createTrafficReportBodyEvidenceOnePreviewTokenMax = 2048;
 
+export const createTrafficReportBodyEvidenceTwoItemNameMax = 255;
+
+export const createTrafficReportBodyEvidenceTwoItemSizeMax = 20971520;
+
+export const createTrafficReportBodyEvidenceTwoItemObjectPathRegExp = new RegExp('^/objects/evidence/[a-f0-9-]{36}$');
+export const createTrafficReportBodyEvidenceTwoItemPreviewTokenMax = 2048;
+
+export const createTrafficReportBodyEvidenceTwoMax = 5;
+
 export const createTrafficReportBodyLanguageMin = 2;
 export const createTrafficReportBodyLanguageMax = 10;
 
@@ -242,7 +252,13 @@ export const CreateTrafficReportBody = zod.object({
   "size": zod.number().int().min(1).max(createTrafficReportBodyEvidenceOneSizeMax),
   "objectPath": zod.string().regex(createTrafficReportBodyEvidenceOneObjectPathRegExp),
   "previewToken": zod.string().min(1).max(createTrafficReportBodyEvidenceOnePreviewTokenMax)
-}),zod.null()]),
+}),zod.array(zod.object({
+  "name": zod.string().max(createTrafficReportBodyEvidenceTwoItemNameMax),
+  "type": zod.enum(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'audio/webm', 'audio/mp4', 'audio/ogg', 'audio/mpeg', 'audio/wav', 'video/webm', 'video/mp4', 'video/quicktime']),
+  "size": zod.number().int().min(1).max(createTrafficReportBodyEvidenceTwoItemSizeMax),
+  "objectPath": zod.string().regex(createTrafficReportBodyEvidenceTwoItemObjectPathRegExp),
+  "previewToken": zod.string().min(1).max(createTrafficReportBodyEvidenceTwoItemPreviewTokenMax)
+})).max(createTrafficReportBodyEvidenceTwoMax),zod.null()]),
   "language": zod.string().min(createTrafficReportBodyLanguageMin).max(createTrafficReportBodyLanguageMax),
   "englishTranslation": zod.union([zod.object({
   "location": zod.string(),
@@ -298,11 +314,11 @@ export const CreateTrafficReportResponse = zod.object({
   "email": zod.string().email().max(createTrafficReportResponseOriginalReportEmailMax).nullable(),
   "phone": zod.string().max(createTrafficReportResponseOriginalReportPhoneMax).nullable()
 }),
-  "evidence": zod.union([zod.object({
+  "evidence": zod.array(zod.object({
   "name": zod.string(),
   "type": zod.string(),
   "size": zod.number().int()
-}),zod.null()]),
+})),
   "analysis": zod.union([zod.object({
   "summary": zod.string().max(createTrafficReportResponseAnalysisOneSummaryMax),
   "urgency": zod.enum(['low', 'medium', 'high']),
@@ -335,5 +351,20 @@ export const ReadTrafficReportEvidenceParams = zod.object({
 })
 
 export const ReadTrafficReportEvidenceResponse = zod.unknown()
+
+
+/**
+ * @summary Read one evidence attachment from an authorized report
+ */
+export const readTrafficReportEvidenceItemPathEvidenceIndexMin = 0;
+
+
+
+export const ReadTrafficReportEvidenceItemParams = zod.object({
+  "reportId": zod.coerce.string().uuid(),
+  "evidenceIndex": zod.coerce.number().int().min(readTrafficReportEvidenceItemPathEvidenceIndexMin)
+})
+
+export const ReadTrafficReportEvidenceItemResponse = zod.unknown()
 
 

@@ -35,7 +35,7 @@ paths:
       operationId: uploadEvidence
       tags: [Storage]
       summary: Upload private photo, audio, or video evidence
-      description: Validates an evidence file and stores it privately. Images are limited to 3 MB, audio to 10 MB, and video to 20 MB.
+      description: Validates one evidence file and stores it privately. A report can include up to 5 attachments with a combined size of 25 MiB. Images are limited to 3 MiB, audio to 10 MiB, and video to 20 MiB per file.
       requestBody:
         required: true
         content:
@@ -270,6 +270,7 @@ paths:
       operationId: createTrafficReport
       tags: [Reports]
       summary: Save a resident traffic-safety report
+      description: A report may include up to 5 private evidence files with a combined size of no more than 25 MiB. Existing clients may submit one evidence object.
       requestBody:
         required: true
         content:
@@ -315,6 +316,34 @@ paths:
           schema:
             type: string
             format: uuid
+      responses:
+        "200":
+          description: Private evidence for its submitting resident or authenticated staff.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Report or evidence not available to this viewer.
+  /reports/{reportId}/evidence/{evidenceIndex}:
+    get:
+      operationId: readTrafficReportEvidenceItem
+      tags: [Reports]
+      summary: Read one evidence attachment from an authorized report
+      parameters:
+        - in: path
+          name: reportId
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: path
+          name: evidenceIndex
+          required: true
+          schema:
+            type: integer
+            minimum: 0
       responses:
         "200":
           description: Private evidence for its submitting resident or authenticated staff.
@@ -427,6 +456,10 @@ components:
         evidence:
           oneOf:
             - $ref: "#/components/schemas/TrafficReportEvidenceInput"
+            - type: array
+              maxItems: 5
+              items:
+                $ref: "#/components/schemas/TrafficReportEvidenceInput"
             - type: "null"
         language:
           type: string
@@ -558,9 +591,9 @@ components:
         originalReport:
           $ref: "#/components/schemas/TrafficReportOriginal"
         evidence:
-          oneOf:
-            - $ref: "#/components/schemas/TrafficReportEvidence"
-            - type: "null"
+          type: array
+          items:
+            $ref: "#/components/schemas/TrafficReportEvidence"
         analysis:
           oneOf:
             - $ref: "#/components/schemas/TrafficReportAnalysis"

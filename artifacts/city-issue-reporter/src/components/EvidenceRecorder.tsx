@@ -6,12 +6,12 @@ import EvidencePlayer from './EvidencePlayer';
 
 type Props = {
   disabled: boolean;
-  hasAttachment: boolean;
+  canAttach: boolean;
   onAttach: (file: File) => Promise<boolean>;
   onBusy: (busy: boolean) => void;
 };
 
-export default function EvidenceRecorder({ disabled, hasAttachment, onAttach, onBusy }: Props) {
+export default function EvidenceRecorder({ disabled, canAttach, onAttach, onBusy }: Props) {
   const { t } = useLanguage();
   const [phase, setPhase] = useState<'idle' | 'requesting' | 'recording' | 'preview'>('idle');
   const [kind, setKind] = useState<'audio' | 'video'>('audio');
@@ -154,8 +154,8 @@ export default function EvidenceRecorder({ disabled, hasAttachment, onAttach, on
       <p className="hint">{t('recordPermissionHint')}</p>
       {phase === 'idle' && (
         <div className="record-actions">
-          <button type="button" className="button button-secondary" disabled={disabled} onClick={() => void start('audio')} data-testid="button-record-audio"><Mic size={16} />{t('recordAudio')}</button>
-          <button type="button" className="button button-secondary" disabled={disabled} onClick={() => void start('video')} data-testid="button-record-video"><Video size={16} />{t('recordVideo')}</button>
+          <button type="button" className="button button-secondary" disabled={disabled || !canAttach} onClick={() => void start('audio')} data-testid="button-record-audio"><Mic size={16} />{t('recordAudio')}</button>
+          <button type="button" className="button button-secondary" disabled={disabled || !canAttach} onClick={() => void start('video')} data-testid="button-record-video"><Video size={16} />{t('recordVideo')}</button>
         </div>
       )}
       {phase === 'requesting' && <p role="status">{t('recordPermissionWait')}</p>}
@@ -170,7 +170,7 @@ export default function EvidenceRecorder({ disabled, hasAttachment, onAttach, on
         <div className="recording-panel">
           <p className="hint">{t('recordPreviewHint')}</p>
           <EvidencePlayer src={preview} type={file.type} name={file.name} />
-          <button type="button" className="button button-primary" disabled={disabled} onClick={async () => { if (await onAttach(file)) discard(); }} data-testid="button-attach-recording">{hasAttachment ? t('replaceEvidence') : t('attachRecording')}</button>
+          <button type="button" className="button button-primary" disabled={disabled || !canAttach} onClick={async () => { if (await onAttach(file)) discard(); }} data-testid="button-attach-recording">{t('attachRecording')}</button>
         </div>
       )}
       {phase !== 'idle' && <button type="button" className="button button-link" disabled={disabled} onClick={discard} data-testid="button-discard-recording"><X size={15} />{t('discardRecording')}</button>}

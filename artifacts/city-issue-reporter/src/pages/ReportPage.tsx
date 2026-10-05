@@ -450,7 +450,7 @@ export default function ReportPage() {
                       <div className="review-row"><span className="review-key">{t('reviewLocation')}</span><span className="review-value" dir="auto">{draft.location}</span></div>
                       <div className="review-row"><span className="review-key">{t('reviewWhen')}</span><span className="review-value" dir="auto">{draft.date} · {draft.approximateTime}</span></div>
                       <div className="review-row"><span className="review-key">{t('reviewDetails')}</span><span className="review-value" dir="auto">{draft.description}</span></div>
-                      {draft.evidence && <div className="review-row"><span className="review-key">{t('evidenceLabel')}</span><span className="review-value">{draft.evidence.name}</span></div>}
+                      {Boolean(draft.evidence?.length) && <div className="review-row"><span className="review-key">{t('evidenceLabel')}</span><span className="review-value">{draft.evidence?.map((item) => item.name).join(', ')}</span></div>}
                     </div>
                   </div>
                 </div>

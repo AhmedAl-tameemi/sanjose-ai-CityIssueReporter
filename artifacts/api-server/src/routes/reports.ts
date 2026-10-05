@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { Readable } from "node:stream";
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Request, type Response } from "express";
 import { and, desc, eq } from "drizzle-orm";
 import {
   CreateTrafficReportBody,
@@ -9,13 +9,20 @@ import {
 } from "@workspace/api-zod";
 import { db, trafficReportsTable, type TrafficReportRecord } from "@workspace/db";
 import {
-  canResidentPreviewEvidence,
   canStaffReadEvidence,
+  canResidentPreviewEvidence,
   getResidentOwnerId,
   getStaffSession,
 } from "../lib/staffAuth";
 import { generateReportAnalysis } from "../lib/reportAnalysis";
 import { ObjectNotFoundError, ObjectStorageService } from "../lib/objectStorage";
+import {
+  canReadReportEvidence,
+  canSubmitEvidence,
+  normalizeStoredEvidence,
+  reportEvidenceLimitError,
+  verifyEvidenceMetadata,
+} from "../lib/reportEvidence";
 
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
@@ -27,9 +34,11 @@ function publicRecord(record: TrafficReportRecord) {
     category: record.category,
     location: record.location,
     originalReport: record.originalReport,
-    evidence: record.evidence
-      ? { name: record.evidence.name, type: record.evidence.type, size: record.evidence.size }
-      : null,
+    evidence: normalizeStoredEvidence(record.evidence).map(({ name, type, size }) => ({
+      name,
+      type,
+      size,
+    })),
     analysis: record.analysis,
     analysisStatus: record.analysisStatus,
     status: record.status,
@@ -71,6 +80,12 @@ router.post("/reports", async (req, res): Promise<void> => {
     return;
   }
   const { originalReport, evidence, clientSubmissionId, language, englishTranslation } = parsed.data;
+  const evidenceItems = Array.isArray(evidence) ? evidence : evidence ? [evidence] : [];
+  const evidenceError = reportEvidenceLimitError(evidenceItems);
+  if (evidenceError) {
+    res.status(400).json({ error: evidenceError });
+    return;
+  }
   const date = new Date(`${originalReport.date}T12:00:00Z`);
   if (
     !Number.isFinite(date.getTime()) ||
@@ -82,17 +97,47 @@ router.post("/reports", async (req, res): Promise<void> => {
     return;
   }
 
-  if (evidence) {
-    // Validate the capability, but never persist it or include it in history.
-    if (req.header("x-resident-preview-token") !== evidence.previewToken ||
-        !canResidentPreviewEvidence(req, evidence.objectPath)) {
+  const ownerId = getResidentOwnerId(req, res);
+  try {
+    const [existing] = await db.select().from(trafficReportsTable).where(and(
+      eq(trafficReportsTable.ownerId, ownerId),
+      eq(trafficReportsTable.clientSubmissionId, clientSubmissionId),
+    ));
+    if (existing) {
+      res.status(201).json(publicRecord(existing));
+      return;
+    }
+  } catch {
+    req.log.error("Report submission could not be checked for a prior save");
+    res.status(503).json({ error: "Your report could not be saved. Please try again." });
+    return;
+  }
+
+  if (evidenceItems.length > 0) {
+    // Each token is bound to its own path. Never persist capabilities or expose
+    // them in report history.
+    if (!canSubmitEvidence(
+      evidenceItems,
+      (objectPath, previewToken) => canResidentPreviewEvidence(req, objectPath, previewToken),
+    )) {
       res.status(400).json({ error: "The evidence authorization expired. Please attach the evidence again." });
       return;
     }
   }
 
   try {
-    const ownerId = getResidentOwnerId(req, res);
+    const evidenceMatchesStorage = await verifyEvidenceMetadata(
+      evidenceItems,
+      async (objectPath) => {
+        const file = await objectStorageService.getObjectEntityFile(objectPath);
+        const [metadata] = await file.getMetadata();
+        return { size: metadata.size, contentType: metadata.contentType };
+      },
+    );
+    if (!evidenceMatchesStorage) {
+      res.status(400).json({ error: "The evidence changed or expired. Please attach the files again." });
+      return;
+    }
     const [created] = await db.insert(trafficReportsTable).values({
       ownerId,
       clientSubmissionId,
@@ -100,9 +145,12 @@ router.post("/reports", async (req, res): Promise<void> => {
       category: originalReport.issueType,
       location: originalReport.location,
       originalReport,
-      evidence: evidence
-        ? { name: evidence.name, type: evidence.type, size: evidence.size, objectPath: evidence.objectPath }
-        : null,
+      evidence: evidenceItems.map(({ name, type, size, objectPath }) => ({
+        name,
+        type,
+        size,
+        objectPath,
+      })),
       language,
       englishTranslation,
     }).onConflictDoNothing({
@@ -140,13 +188,17 @@ router.post("/reports", async (req, res): Promise<void> => {
       req.log.warn({ reportId: created.id }, "Report saved; analysis update pending");
     }
     res.status(201).json(publicRecord(result));
-  } catch {
+  } catch (error) {
+    if (error instanceof ObjectNotFoundError) {
+      res.status(400).json({ error: "The evidence changed or expired. Please attach the files again." });
+      return;
+    }
     req.log.error("Report submission could not be saved");
     res.status(503).json({ error: "Your report could not be saved. Please try again." });
   }
 });
 
-router.get("/reports/:reportId/evidence", async (req, res): Promise<void> => {
+async function readReportEvidence(req: Request, res: Response): Promise<void> {
   res.setHeader("Cache-Control", "private, no-store");
   const raw = req.params.reportId;
   const reportId = Array.isArray(raw) ? raw[0] : raw;
@@ -159,13 +211,25 @@ router.get("/reports/:reportId/evidence", async (req, res): Promise<void> => {
     const ownerId = staff ? null : getResidentOwnerId(req, res);
     const [record] = await db.select().from(trafficReportsTable).where(and(
       eq(trafficReportsTable.id, reportId),
-      ...(ownerId ? [eq(trafficReportsTable.ownerId, ownerId)] : []),
     ));
-    if (!record?.evidence) {
+    if (!record || !canReadReportEvidence(staff, record.ownerId, ownerId)) {
       res.status(404).end();
       return;
     }
-    const file = await objectStorageService.getObjectEntityFile(record.evidence.objectPath);
+    const rawIndex = req.params.evidenceIndex;
+    const evidenceIndex = rawIndex === undefined
+      ? 0
+      : Number(Array.isArray(rawIndex) ? rawIndex[0] : rawIndex);
+    if (!Number.isSafeInteger(evidenceIndex) || evidenceIndex < 0) {
+      res.status(404).end();
+      return;
+    }
+    const evidence = normalizeStoredEvidence(record.evidence)[evidenceIndex];
+    if (!evidence) {
+      res.status(404).end();
+      return;
+    }
+    const file = await objectStorageService.getObjectEntityFile(evidence.objectPath);
     const response = await objectStorageService.downloadObject(file);
     response.headers.forEach((value, key) => res.setHeader(key, value));
     if (response.body) Readable.fromWeb(response.body as ReadableStream<Uint8Array>).pipe(res);
@@ -177,6 +241,9 @@ router.get("/reports/:reportId/evidence", async (req, res): Promise<void> => {
       res.status(503).end();
     }
   }
-});
+}
+
+router.get("/reports/:reportId/evidence", readReportEvidence);
+router.get("/reports/:reportId/evidence/:evidenceIndex", readReportEvidence);
 
 export default router;

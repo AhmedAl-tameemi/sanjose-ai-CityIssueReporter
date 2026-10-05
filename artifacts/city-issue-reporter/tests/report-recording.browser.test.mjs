@@ -64,20 +64,22 @@ async function open(mode = 'allowed', uploadFails = false) {
     if (pathname === '/api/reports/session') return route.fulfill({ status: 204 });
     if (pathname === '/api/reports' && request.method() === 'POST') {
       const body = request.postDataJSON();
-      assert.equal(body.evidence.type, uploaded.type);
-      assert.equal(body.evidence.objectPath, objectPath);
-      assert.equal(request.headers()['x-resident-preview-token'], previewToken);
+      assert.equal(body.evidence.length, 1);
+      assert.equal(body.evidence[0].type, uploaded.type);
+      assert.equal(body.evidence[0].objectPath, objectPath);
+      assert.equal(body.evidence[0].previewToken, previewToken);
+      assert.equal(request.headers()['x-resident-preview-token'], undefined);
       record = {
         id: reportId, reportNumber: 'TEST-RECORDING', category: body.originalReport.issueType,
         location: body.originalReport.location, originalReport: body.originalReport,
-        evidence: { name: body.evidence.name, type: body.evidence.type, size: body.evidence.size },
+        evidence: [{ name: body.evidence[0].name, type: body.evidence[0].type, size: body.evidence[0].size }],
         language: body.language, englishTranslation: body.englishTranslation, analysis: null, analysisStatus: 'unavailable',
         status: 'submitted', submittedAt: new Date().toISOString(),
       };
       return json(record, 201);
     }
     if (pathname === '/api/reports') return json({ reports: record ? [record] : [], viewer: 'resident' });
-    if (pathname === `/api/reports/${reportId}/evidence`) return route.fulfill({ contentType: uploaded.type, body: uploaded.bytes });
+    if (pathname === `/api/reports/${reportId}/evidence/0`) return route.fulfill({ contentType: uploaded.type, body: uploaded.bytes });
     return json({});
   });
   await page.goto(`${baseUrl}/?view=report`);

@@ -148,8 +148,9 @@ export function createResidentEvidencePreviewToken(objectPath: string): string {
 export function canResidentPreviewEvidence(
   req: Request,
   objectPath: string,
+  explicitToken?: string,
 ): boolean {
-  const token = req.header("x-resident-preview-token");
+  const token = explicitToken ?? req.header("x-resident-preview-token");
   if (!token) return false;
 
   const payload = readToken(token, "resident-evidence-preview");

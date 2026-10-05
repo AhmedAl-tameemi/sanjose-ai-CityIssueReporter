@@ -12,7 +12,7 @@ import type { TrafficReportOriginal } from './trafficReportOriginal';
 export interface TrafficReportInput {
   clientSubmissionId: string;
   originalReport: TrafficReportOriginal;
-  evidence: TrafficReportEvidenceInput | null;
+  evidence: TrafficReportEvidenceInput | TrafficReportEvidenceInput[] | null;
   /**
      * @minLength 2
      * @maxLength 10

@@ -21,23 +21,48 @@ function errorMessage(err: unknown): string {
   return e?.data?.error || e?.message || 'Request failed. Please try again.';
 }
 
-function PhotoEvidence({ report, label, fail }: { report: TrafficReport; label: string; fail: string }) {
+function HistoryEvidenceItem({ report, evidence, index, label, fail }: {
+  report: TrafficReport;
+  evidence: TrafficReport['evidence'][number];
+  index: number;
+  label: string;
+  fail: string;
+}) {
   const [broken, setBroken] = useState(false);
-  if (!report.evidence) return null;
   return (
-    <div className="history-photo">
-      <span className="history-label">{label}</span>
+    <div className="history-photo-item" data-testid={`history-evidence-${index}`}>
       {broken ? (
         <p className="history-text">{fail}</p>
       ) : (
         <EvidencePlayer
-          src={`/api/reports/${encodeURIComponent(report.id)}/evidence`}
-          type={report.evidence.type}
-          name={`${label}: ${report.evidence.name}`}
+          src={`/api/reports/${encodeURIComponent(report.id)}/evidence/${index}`}
+          type={evidence.type}
+          name={`${label}: ${evidence.name}`}
           onError={() => setBroken(true)}
         />
       )}
-      <p className="hint">{report.evidence.name} · {Math.max(1, Math.round(report.evidence.size / 1024))} KB</p>
+      <p className="hint">{evidence.name} · {Math.max(1, Math.round(evidence.size / 1024))} KB</p>
+    </div>
+  );
+}
+
+function PhotoEvidence({ report, label, fail }: { report: TrafficReport; label: string; fail: string }) {
+  if (!report.evidence.length) return null;
+  return (
+    <div className="history-photo">
+      <span className="history-label">{label}</span>
+      <div className="history-evidence-list">
+        {report.evidence.map((evidence, index) => (
+          <HistoryEvidenceItem
+            key={`${index}-${evidence.name}`}
+            report={report}
+            evidence={evidence}
+            index={index}
+            label={label}
+            fail={fail}
+          />
+        ))}
+      </div>
     </div>
   );
 }

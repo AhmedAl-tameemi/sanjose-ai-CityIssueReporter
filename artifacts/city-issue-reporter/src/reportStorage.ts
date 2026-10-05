@@ -6,6 +6,12 @@ import {
   type Report,
   type ReportDraft,
 } from "./types/report.ts";
+import {
+  evidenceSizeLimit,
+  maxCombinedEvidenceSize,
+  maxEvidenceAttachments,
+  supportedEvidenceTypes,
+} from "./lib/mediaEvidence.ts";
 
 export const draftStorageKey = "city-issue-reporter-draft-v2";
 export const reportStorageKey = "city-issue-reporter-last-report";
@@ -20,13 +26,16 @@ type StoredEvidence = {
   previewToken?: unknown;
 };
 
-function readEvidence(value: unknown): EvidenceImage | undefined {
+function readEvidenceItem(value: unknown): EvidenceImage | undefined {
   if (!value || typeof value !== "object") return undefined;
   const stored = value as StoredEvidence;
   if (
     typeof stored.name !== "string" ||
     typeof stored.type !== "string" ||
     typeof stored.size !== "number" ||
+    stored.size <= 0 ||
+    stored.size > evidenceSizeLimit(stored.type) ||
+    !(supportedEvidenceTypes as readonly string[]).includes(stored.type) ||
     !isEvidenceObjectPath(stored.objectPath) ||
     !isEvidencePreviewToken(stored.previewToken)
   ) {
@@ -39,6 +48,15 @@ function readEvidence(value: unknown): EvidenceImage | undefined {
     objectPath: stored.objectPath,
     previewToken: stored.previewToken,
   };
+}
+
+function readEvidence(value: unknown): EvidenceImage[] {
+  const items = Array.isArray(value) ? value : value == null ? [] : [value];
+  const valid = items.map(readEvidenceItem).filter((item): item is EvidenceImage => Boolean(item));
+  const combinedSize = valid.reduce((total, item) => total + item.size, 0);
+  return valid.length <= maxEvidenceAttachments && combinedSize <= maxCombinedEvidenceSize
+    ? valid
+    : [];
 }
 
 export function readDraft(storage: StorageLike = window.localStorage): ReportDraft {

@@ -1366,6 +1366,14 @@
   gap: 9px;
 }
 
+.confirmation-evidence-item {
+  display: grid;
+  gap: 7px;
+  padding: 10px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+}
+
 .confirmation-evidence img {
   width: min(100%, 300px);
   max-height: 220px;
@@ -1381,6 +1389,23 @@
   font-size: 12px;
   font-weight: 600;
   overflow-wrap: anywhere;
+}
+
+.evidence-preview-media {
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 9px;
+  background: hsl(var(--background));
+}
+
+.evidence-preview-copy {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.evidence-preview-copy strong {
+  display: block;
 }
 
 .next-steps {

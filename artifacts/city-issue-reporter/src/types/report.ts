@@ -46,7 +46,7 @@ export type Report = {
   approximateTime: string;
   description: string;
   frequency: Frequency;
-  evidence?: EvidenceImage;
+  evidence?: EvidenceImage[];
   name?: string;
   email?: string;
   phone?: string;
@@ -74,7 +74,7 @@ export const blankDraft: ReportDraft = {
   approximateTime: '',
   description: '',
   frequency: '' as Frequency,
-  evidence: undefined,
+  evidence: [],
   name: '',
   email: '',
   phone: '',

@@ -32,6 +32,11 @@ export type TrafficReportEvidence = {
   objectPath: string;
 };
 
+export type StoredTrafficReportEvidence =
+  | TrafficReportEvidence
+  | TrafficReportEvidence[]
+  | null;
+
 export type TrafficReportAnalysis = {
   summary: string;
   urgency: "low" | "medium" | "high";
@@ -57,7 +62,7 @@ export const trafficReportsTable = pgTable(
     originalReport: jsonb("original_report")
       .$type<TrafficReportOriginal>()
       .notNull(),
-    evidence: jsonb("evidence").$type<TrafficReportEvidence | null>(),
+    evidence: jsonb("evidence").$type<StoredTrafficReportEvidence>(),
     analysis: jsonb("analysis").$type<TrafficReportAnalysis | null>(),
     analysisStatus: text("analysis_status")
       .$type<"pending" | "complete" | "unavailable">()

@@ -20,3 +20,9 @@ Form dictation has a different purpose from recording evidence. Treat it as opti
 **Why:** The user separately requested microphone input instead of typing or selecting form choices. Browser speech recognition can involve a browser-managed transcription provider, so do not describe dictation as guaranteed offline or entirely on-device.
 
 **How to apply:** Keep the manual controls and review step available. Explain speech-provider processing before dictation; do not save dictation audio as evidence. Preserve the distinction between browser transcription for form entry and processing explicitly attached evidence.
+
+For reports with multiple media files, cap each report at 5 attachments and 25 MiB combined, while retaining the per-file limits of 3 MiB for images, 10 MiB for audio, and 20 MiB for video. Check aggregate size against stored object metadata, not only client-declared sizes.
+
+**Why:** A single-resident upload can stay within each media limit and still exceed a reasonable report-level storage budget when several files are combined.
+
+**How to apply:** Keep the aggregate count and size limits aligned across the upload UI, API contract, and report-submission validation. Compare each submitted file's size and media type to its private object metadata before saving the report.

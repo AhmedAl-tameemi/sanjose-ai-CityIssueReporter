@@ -6,6 +6,7 @@ import {
 } from '../reportStorage';
 import { useResidentEvidencePreview } from '../lib/evidencePreview';
 import EvidencePlayer from '../components/EvidencePlayer';
+import type { EvidenceImage } from '../types/report';
 import {
   frequencyTranslationKeys,
   issueTranslationKeys,
@@ -23,6 +24,22 @@ const safetyRiskTranslationKeys = {
   otherSafetyHazard: 'riskOtherSafetyHazard',
 } as const satisfies Record<ReportSafetyConsequence, string>;
 
+function ConfirmationEvidenceItem({ evidence, loadingLabel, errorLabel }: {
+  evidence: EvidenceImage;
+  loadingLabel: string;
+  errorLabel: string;
+}) {
+  const preview = useResidentEvidencePreview(evidence.objectPath, evidence.previewToken);
+  return (
+    <div className="confirmation-evidence-item">
+      {preview.url && <EvidencePlayer src={preview.url} type={evidence.type} name={evidence.name} />}
+      {preview.isLoading && <p className="hint" role="status">{loadingLabel}</p>}
+      {preview.error && <p className="error-text" role="alert">{errorLabel}</p>}
+      <span><ImageIcon size={15} />{evidence.name}</span>
+    </div>
+  );
+}
+
 export default function ConfirmationPage() {
   const { language, direction, setLanguage, t } = useLanguage();
   const [, setLocation] = useLocation();
@@ -38,11 +55,6 @@ export default function ConfirmationPage() {
       if (report.language !== language) setLanguage(report.language);
     }
   }, [language, report?.language, setLanguage]);
-
-  const evidencePreview = useResidentEvidencePreview(
-    report?.evidence?.objectPath,
-    report?.evidence?.previewToken,
-  );
 
   if (!report) {
     return (
@@ -150,14 +162,18 @@ export default function ConfirmationPage() {
                     <span className="summary-value" dir="auto">{[report.name, report.email, report.phone].filter(Boolean).join(' · ')}</span>
                   </div>
                 )}
-                {report.evidence && (
+                {Boolean(report.evidence?.length) && (
                   <div className="summary-item full">
                     <span className="summary-label">{t('evidenceLabel')}</span>
                     <div className="confirmation-evidence">
-                      {evidencePreview.url && <EvidencePlayer src={evidencePreview.url} type={report.evidence.type} name={report.evidence.name} />}
-                      {evidencePreview.isLoading && <p className="hint" role="status">{t('evidenceLoading')}</p>}
-                      {evidencePreview.error && <p className="error-text" role="alert">{t('evidenceLoadError')}</p>}
-                      <span><ImageIcon size={15} />{report.evidence.name}</span>
+                      {report.evidence?.map((evidence) => (
+                        <ConfirmationEvidenceItem
+                          key={evidence.objectPath}
+                          evidence={evidence}
+                          loadingLabel={t('evidenceLoading')}
+                          errorLabel={t('evidenceLoadError')}
+                        />
+                      ))}
                     </div>
                   </div>
                 )}

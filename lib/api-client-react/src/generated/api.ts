@@ -146,7 +146,7 @@ export const getUploadEvidenceUrl = () => {
 }
 
 /**
- * Validates an evidence file and stores it privately. Images are limited to 3 MB, audio to 10 MB, and video to 20 MB.
+ * Validates one evidence file and stores it privately. A report can include up to 5 attachments with a combined size of 25 MiB. Images are limited to 3 MiB, audio to 10 MiB, and video to 20 MiB per file.
  * @summary Upload private photo, audio, or video evidence
  */
 export const uploadEvidence = async (uploadEvidenceBody: Blob, options?: Parameters<typeof customFetch>[1]): Promise<EvidenceUploadResponse> => {
@@ -718,6 +718,7 @@ export const getCreateTrafficReportUrl = () => {
 }
 
 /**
+ * A report may include up to 5 private evidence files with a combined size of no more than 25 MiB. Existing clients may submit one evidence object.
  * @summary Save a resident traffic-safety report
  */
 export const createTrafficReport = async (trafficReportInput: TrafficReportInput, options?: Parameters<typeof customFetch>[1]): Promise<TrafficReport> => {
@@ -936,6 +937,88 @@ export function useReadTrafficReportEvidence<TData = Awaited<ReturnType<typeof r
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getReadTrafficReportEvidenceQueryOptions(reportId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getReadTrafficReportEvidenceItemUrl = (reportId: string,
+    evidenceIndex: number,) => {
+
+
+
+
+  return `/api/reports/${reportId}/evidence/${evidenceIndex}`
+}
+
+/**
+ * @summary Read one evidence attachment from an authorized report
+ */
+export const readTrafficReportEvidenceItem = async (reportId: string,
+    evidenceIndex: number, options?: Parameters<typeof customFetch>[1]): Promise<Blob> => {
+
+  return customFetch<Blob>(getReadTrafficReportEvidenceItemUrl(reportId,evidenceIndex),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getReadTrafficReportEvidenceItemQueryKey = (reportId: string,
+    evidenceIndex: number,) => {
+    return [
+    `/api/reports/${reportId}/evidence/${evidenceIndex}`
+    ] as const;
+    }
+
+
+export const getReadTrafficReportEvidenceItemQueryOptions = <TData = Awaited<ReturnType<typeof readTrafficReportEvidenceItem>>, TError = ErrorType<void>>(reportId: string,
+    evidenceIndex: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof readTrafficReportEvidenceItem>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getReadTrafficReportEvidenceItemQueryKey(reportId,evidenceIndex);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof readTrafficReportEvidenceItem>>> = ({ signal }) => readTrafficReportEvidenceItem(reportId,evidenceIndex, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: reportId !== null && reportId !== undefined && evidenceIndex !== null && evidenceIndex !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof readTrafficReportEvidenceItem>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ReadTrafficReportEvidenceItemQueryResult = NonNullable<Awaited<ReturnType<typeof readTrafficReportEvidenceItem>>>
+export type ReadTrafficReportEvidenceItemQueryError = ErrorType<void>
+
+
+/**
+ * @summary Read one evidence attachment from an authorized report
+ */
+
+export function useReadTrafficReportEvidenceItem<TData = Awaited<ReturnType<typeof readTrafficReportEvidenceItem>>, TError = ErrorType<void>>(
+ reportId: string,
+    evidenceIndex: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof readTrafficReportEvidenceItem>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getReadTrafficReportEvidenceItemQueryOptions(reportId,evidenceIndex,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

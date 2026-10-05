@@ -6,41 +6,8 @@ import {
 } from "@workspace/api-client-react";
 import type { LanguageCode } from "../i18n";
 import type { Report, ReportDraft } from "../types/report";
-
-const submissionStorageKey = "traffic-signal-pending-submission";
-let pendingSubmission: { fingerprint: string; id: string } | null = null;
-
-function submissionId(fingerprint: string): string {
-  try {
-    const saved = window.localStorage.getItem(submissionStorageKey);
-    if (saved) {
-      const parsed = JSON.parse(saved) as { fingerprint?: unknown; id?: unknown };
-      if (parsed.fingerprint === fingerprint && typeof parsed.id === "string") {
-        return parsed.id;
-      }
-    }
-  } catch {
-    // Idempotency still works within this page if browser storage is disabled.
-  }
-  if (pendingSubmission?.fingerprint !== fingerprint) {
-    pendingSubmission = { fingerprint, id: crypto.randomUUID() };
-  }
-  try {
-    window.localStorage.setItem(submissionStorageKey, JSON.stringify(pendingSubmission));
-  } catch {
-    // This cache is optional; the report itself is stored on the server.
-  }
-  return pendingSubmission.id;
-}
-
-export function clearPendingSubmission(): void {
-  pendingSubmission = null;
-  try {
-    window.localStorage.removeItem(submissionStorageKey);
-  } catch {
-    // Optional browser cache only.
-  }
-}
+import { getSubmissionId } from "./submissionIdentity";
+export { clearPendingSubmission } from "./submissionIdentity";
 
 export async function submitPersistentReport(
   draft: ReportDraft,
@@ -62,18 +29,19 @@ export async function submitPersistentReport(
     email: draft.email?.trim() || null,
     phone: draft.phone || null,
   };
-  const evidence: TrafficReportEvidenceInput | null = draft.evidence
-    ? { ...draft.evidence, type: draft.evidence.type as TrafficReportEvidenceInput["type"] }
-    : null;
+  const draftEvidence = draft.evidence ?? [];
+  const evidence: TrafficReportEvidenceInput[] = draftEvidence.map((item) => ({
+    ...item,
+    type: item.type as TrafficReportEvidenceInput["type"],
+  }));
   const fingerprint = JSON.stringify({ originalReport, evidence, language });
-  const clientSubmissionId = submissionId(fingerprint);
+  const clientSubmissionId = getSubmissionId(fingerprint);
 
   // Establish the cookie before the potentially long-running submission so a
   // lost submission response can safely be retried by the same owner.
   await ensureResidentReportSession();
   const saved = await createTrafficReport(
     { clientSubmissionId, originalReport, evidence, language, englishTranslation: englishTranslation ?? null },
-    { headers: evidence ? { "X-Resident-Preview-Token": evidence.previewToken } : {} },
   );
   return {
     ...saved.originalReport,
@@ -84,7 +52,7 @@ export async function submitPersistentReport(
     name: saved.originalReport.name ?? undefined,
     email: saved.originalReport.email ?? undefined,
     phone: saved.originalReport.phone ?? undefined,
-    evidence: saved.evidence ? draft.evidence : undefined,
+    evidence: saved.evidence.length ? draftEvidence : undefined,
     reportId: saved.id,
     reportNumber: saved.reportNumber,
     submittedAt: saved.submittedAt,
