@@ -50,7 +50,7 @@ function validateEvidenceHeaders(
   parseEvidenceBody(req, res, (error) => {
     if (error) {
       if ((error as { type?: string }).type === "entity.too.large") {
-        res.status(413).json({ error: "Images must be 3 MB or smaller." });
+        res.status(413).json({ error: "Evidence must be 20 MB or smaller." });
         return;
       }
       next(error);
@@ -75,7 +75,7 @@ router.post(
 
     try {
       if (!bytes || !contentType) {
-        res.status(400).json({ error: "An image file is required." });
+        res.status(400).json({ error: "An evidence file is required." });
         return;
       }
       const stored = await objectStorageService.storeEvidence(bytes, contentType);
@@ -88,7 +88,7 @@ router.post(
       );
     } catch (error) {
       req.log.error({ err: error }, "Error storing evidence");
-      res.status(500).json({ error: "The image could not be stored." });
+      res.status(500).json({ error: "The evidence could not be stored." });
     }
   },
 );
@@ -126,7 +126,7 @@ router.get(
         return;
       }
       req.log.error({ err: error }, "Error serving evidence");
-      res.status(500).json({ error: "The image could not be served." });
+      res.status(500).json({ error: "The evidence could not be served." });
     }
   },
 );

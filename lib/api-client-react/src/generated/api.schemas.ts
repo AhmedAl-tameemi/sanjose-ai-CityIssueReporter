@@ -145,6 +145,14 @@ export const TrafficReportEvidenceInputType = {
   'image/png': 'image/png',
   'image/webp': 'image/webp',
   'image/gif': 'image/gif',
+  'audio/webm': 'audio/webm',
+  'audio/mp4': 'audio/mp4',
+  'audio/ogg': 'audio/ogg',
+  'audio/mpeg': 'audio/mpeg',
+  'audio/wav': 'audio/wav',
+  'video/webm': 'video/webm',
+  'video/mp4': 'video/mp4',
+  'video/quicktime': 'video/quicktime',
 } as const;
 
 export interface TrafficReportEvidenceInput {
@@ -153,7 +161,7 @@ export interface TrafficReportEvidenceInput {
   type: TrafficReportEvidenceInputType;
   /**
      * @minimum 1
-     * @maximum 3145728
+     * @maximum 20971520
      */
   size: number;
   /** @pattern ^/objects/evidence/[a-f0-9-]{36}$ */

@@ -18,8 +18,8 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
- * Uploads one validated image to managed private object storage.
- * @summary Upload private photo evidence
+ * Validates an evidence file and stores it privately. Images are limited to 3 MB, audio to 10 MB, and video to 20 MB.
+ * @summary Upload private photo, audio, or video evidence
  */
 export const UploadEvidenceResponse = zod.object({
   "objectPath": zod.string().describe('Private object path returned by the evidence service.'),
@@ -210,7 +210,7 @@ export const createTrafficReportBodyOriginalReportPhoneMax = 80;
 
 export const createTrafficReportBodyEvidenceOneNameMax = 255;
 
-export const createTrafficReportBodyEvidenceOneSizeMax = 3145728;
+export const createTrafficReportBodyEvidenceOneSizeMax = 20971520;
 
 export const createTrafficReportBodyEvidenceOneObjectPathRegExp = new RegExp('^/objects/evidence/[a-f0-9-]{36}$');
 export const createTrafficReportBodyEvidenceOnePreviewTokenMax = 2048;
@@ -238,7 +238,7 @@ export const CreateTrafficReportBody = zod.object({
 }),
   "evidence": zod.union([zod.object({
   "name": zod.string().max(createTrafficReportBodyEvidenceOneNameMax),
-  "type": zod.enum(['image/jpeg', 'image/png', 'image/webp', 'image/gif']),
+  "type": zod.enum(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'audio/webm', 'audio/mp4', 'audio/ogg', 'audio/mpeg', 'audio/wav', 'video/webm', 'video/mp4', 'video/quicktime']),
   "size": zod.number().int().min(1).max(createTrafficReportBodyEvidenceOneSizeMax),
   "objectPath": zod.string().regex(createTrafficReportBodyEvidenceOneObjectPathRegExp),
   "previewToken": zod.string().min(1).max(createTrafficReportBodyEvidenceOnePreviewTokenMax)

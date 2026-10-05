@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { LocateFixed } from 'lucide-react';
+import VoiceInputButton from './VoiceInputButton';
 import { useLanguage } from '../i18n';
 import type { ReportDraft } from '../types/report';
 
@@ -197,10 +198,10 @@ export default function AddressMap({ draft, error, onPatch, onError, onSearching
     onError(undefined);
   };
 
-  const search = async () => {
+  const search = async (spokenAddress?: string) => {
     locationRequest.current += 1;
     setLocationStatus('idle');
-    const address = draft.location.trim();
+    const address = (spokenAddress ?? draft.location).trim();
     if (!address) {
       onError(t('errorRequired'));
       return;
@@ -272,7 +273,15 @@ export default function AddressMap({ draft, error, onPatch, onError, onSearching
         {locationStatus === 'denied' && <p className="location-status location-status-error" role="alert" data-testid="status-location-error">{t('locationPermissionDenied')}</p>}
         {locationStatus === 'unavailable' && <p className="location-status location-status-error" role="alert" data-testid="status-location-error">{t('locationUnavailable')}</p>}
       </div>
-      <label htmlFor="street-address">{t('streetAddress')} <span className="required">*</span></label>
+      <div className="field-label-row">
+        <label htmlFor="street-address">{t('streetAddress')} <span className="required">*</span></label>
+        <VoiceInputButton
+          field={t('streetAddress')}
+          disabled={searching}
+          testId="button-voice-location"
+          onTranscript={(transcript) => { editAddress(transcript); void search(transcript); }}
+        />
+      </div>
       <input
         id="street-address"
         type="text"

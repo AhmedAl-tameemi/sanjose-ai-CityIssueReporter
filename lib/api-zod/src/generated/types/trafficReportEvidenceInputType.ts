@@ -14,4 +14,12 @@ export const TrafficReportEvidenceInputType = {
   'image/png': 'image/png',
   'image/webp': 'image/webp',
   'image/gif': 'image/gif',
+  'audio/webm': 'audio/webm',
+  'audio/mp4': 'audio/mp4',
+  'audio/ogg': 'audio/ogg',
+  'audio/mpeg': 'audio/mpeg',
+  'audio/wav': 'audio/wav',
+  'video/webm': 'video/webm',
+  'video/mp4': 'video/mp4',
+  'video/quicktime': 'video/quicktime',
 } as const;

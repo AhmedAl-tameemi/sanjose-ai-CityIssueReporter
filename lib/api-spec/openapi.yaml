@@ -34,8 +34,8 @@ paths:
     post:
       operationId: uploadEvidence
       tags: [Storage]
-      summary: Upload private photo evidence
-      description: Uploads one validated image to managed private object storage.
+      summary: Upload private photo, audio, or video evidence
+      description: Validates an evidence file and stores it privately. Images are limited to 3 MB, audio to 10 MB, and video to 20 MB.
       requestBody:
         required: true
         content:
@@ -59,6 +59,22 @@ paths:
             schema:
               type: string
               format: binary
+          audio/webm:
+            schema: { type: string, format: binary }
+          audio/mp4:
+            schema: { type: string, format: binary }
+          audio/ogg:
+            schema: { type: string, format: binary }
+          audio/mpeg:
+            schema: { type: string, format: binary }
+          audio/wav:
+            schema: { type: string, format: binary }
+          video/webm:
+            schema: { type: string, format: binary }
+          video/mp4:
+            schema: { type: string, format: binary }
+          video/quicktime:
+            schema: { type: string, format: binary }
       responses:
         "201":
           description: Evidence stored in private object storage.
@@ -67,13 +83,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/EvidenceUploadResponse"
         "400":
-          description: The uploaded bytes are not a supported image.
+          description: The uploaded bytes do not match a supported media container.
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
         "413":
-          description: The image exceeds the 3 MB limit.
+          description: The evidence exceeds its media-specific size limit.
           content:
             application/json:
               schema:
@@ -110,12 +126,16 @@ paths:
           description: Short-lived capability returned for the submitting resident's confirmation preview.
       responses:
         "200":
-          description: Stored image evidence.
+          description: Stored photo, audio, or video evidence.
           content:
             image/*:
               schema:
                 type: string
                 format: binary
+            audio/*:
+              schema: { type: string, format: binary }
+            video/*:
+              schema: { type: string, format: binary }
         "404":
           description: Evidence object not found.
           content:
@@ -297,7 +317,7 @@ paths:
             format: uuid
       responses:
         "200":
-          description: Private image for its submitting resident or authenticated staff.
+          description: Private evidence for its submitting resident or authenticated staff.
           content:
             application/octet-stream:
               schema:
@@ -487,11 +507,11 @@ components:
           maxLength: 255
         type:
           type: string
-          enum: [image/jpeg, image/png, image/webp, image/gif]
+          enum: [image/jpeg, image/png, image/webp, image/gif, audio/webm, audio/mp4, audio/ogg, audio/mpeg, audio/wav, video/webm, video/mp4, video/quicktime]
         size:
           type: integer
           minimum: 1
-          maximum: 3145728
+          maximum: 20971520
         objectPath:
           type: string
           pattern: "^/objects/evidence/[a-f0-9-]{36}$"

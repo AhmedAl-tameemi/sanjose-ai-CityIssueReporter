@@ -5,6 +5,7 @@ import {
   readReport,
 } from '../reportStorage';
 import { useResidentEvidencePreview } from '../lib/evidencePreview';
+import EvidencePlayer from '../components/EvidencePlayer';
 import {
   frequencyTranslationKeys,
   issueTranslationKeys,
@@ -38,7 +39,7 @@ export default function ConfirmationPage() {
     }
   }, [language, report?.language, setLanguage]);
 
-  const evidenceUrl = useResidentEvidencePreview(
+  const evidencePreview = useResidentEvidencePreview(
     report?.evidence?.objectPath,
     report?.evidence?.previewToken,
   );
@@ -149,11 +150,13 @@ export default function ConfirmationPage() {
                     <span className="summary-value" dir="auto">{[report.name, report.email, report.phone].filter(Boolean).join(' · ')}</span>
                   </div>
                 )}
-                {report.evidence && evidenceUrl && (
+                {report.evidence && (
                   <div className="summary-item full">
-                    <span className="summary-label">{t('imageEvidence')}</span>
+                    <span className="summary-label">{t('evidenceLabel')}</span>
                     <div className="confirmation-evidence">
-                      <img src={evidenceUrl} alt={`${t('imageEvidence')}: ${report.evidence.name}`} />
+                      {evidencePreview.url && <EvidencePlayer src={evidencePreview.url} type={report.evidence.type} name={report.evidence.name} />}
+                      {evidencePreview.isLoading && <p className="hint" role="status">{t('evidenceLoading')}</p>}
+                      {evidencePreview.error && <p className="error-text" role="alert">{t('evidenceLoadError')}</p>}
                       <span><ImageIcon size={15} />{report.evidence.name}</span>
                     </div>
                   </div>

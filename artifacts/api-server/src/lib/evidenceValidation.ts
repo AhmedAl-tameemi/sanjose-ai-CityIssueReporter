@@ -1,10 +1,25 @@
-export const maxEvidenceSize = 3 * 1024 * 1024;
+export const imageEvidenceSize = 3 * 1024 * 1024;
+export const maxEvidenceSize = 20 * 1024 * 1024;
+
+export function evidenceSizeLimit(contentType: string | null): number {
+  if (contentType?.startsWith("image/")) return imageEvidenceSize;
+  if (contentType?.startsWith("audio/")) return 10 * 1024 * 1024;
+  return maxEvidenceSize;
+}
 
 const allowedContentTypes = new Set([
   "image/jpeg",
   "image/png",
   "image/webp",
   "image/gif",
+  "audio/webm",
+  "audio/mp4",
+  "audio/ogg",
+  "audio/mpeg",
+  "audio/wav",
+  "video/webm",
+  "video/mp4",
+  "video/quicktime",
 ]);
 
 export type EvidenceValidationError = {
@@ -23,13 +38,13 @@ export function validateEvidenceHeaders(
   if (!contentType || !allowedContentTypes.has(contentType)) {
     return {
       status: 415,
-      message: "Only JPEG, PNG, WebP, and GIF images are supported.",
+      message: "Use a supported photo, audio, or video file.",
     };
   }
 
   const length = contentLength === undefined ? Number.NaN : Number(contentLength);
-  if (Number.isFinite(length) && length > maxEvidenceSize) {
-    return { status: 413, message: "Images must be 3 MB or smaller." };
+  if (Number.isFinite(length) && length > evidenceSizeLimit(contentType)) {
+    return { status: 413, message: "Evidence exceeds its media size limit." };
   }
 
   return null;
@@ -40,16 +55,40 @@ export function validateEvidenceBytes(
   bytes: Buffer,
 ): EvidenceValidationError | null {
   if (bytes.length === 0) {
-    return { status: 400, message: "An image file is required." };
+    return { status: 400, message: "An evidence file is required." };
   }
-  if (bytes.length > maxEvidenceSize) {
-    return { status: 413, message: "Images must be 3 MB or smaller." };
+  if (bytes.length > evidenceSizeLimit(contentType)) {
+    return { status: 413, message: "Evidence exceeds its media size limit." };
   }
-  if (!contentType || detectImageType(bytes) !== contentType) {
-    return { status: 400, message: "The uploaded file is not a valid image." };
+  if (!contentType || !allowedContentTypes.has(contentType) || !matchesEvidenceType(contentType, bytes)) {
+    return { status: 400, message: "The uploaded file does not match its media type." };
   }
 
   return null;
+}
+
+function matchesEvidenceType(contentType: string, bytes: Buffer): boolean {
+  if (contentType.startsWith("image/")) return detectImageType(bytes) === contentType;
+  if (contentType.endsWith("/webm")) {
+    return bytes.length >= 12 &&
+      bytes.subarray(0, 4).equals(Buffer.from([0x1a, 0x45, 0xdf, 0xa3])) &&
+      bytes.subarray(0, 4096).includes(Buffer.from("webm"));
+  }
+  if (contentType.endsWith("/mp4") || contentType === "video/quicktime") {
+    return bytes.length >= 16 && bytes.subarray(4, 8).toString("ascii") === "ftyp";
+  }
+  if (contentType === "audio/ogg") {
+    return bytes.length >= 27 && bytes.subarray(0, 4).toString("ascii") === "OggS";
+  }
+  if (contentType === "audio/wav") {
+    return bytes.length >= 12 && bytes.subarray(0, 4).toString("ascii") === "RIFF" &&
+      bytes.subarray(8, 12).toString("ascii") === "WAVE";
+  }
+  if (contentType === "audio/mpeg") {
+    return bytes.length >= 3 && (bytes.subarray(0, 3).toString("ascii") === "ID3" ||
+      (bytes[0] === 0xff && (bytes[1]! & 0xe0) === 0xe0));
+  }
+  return false;
 }
 
 export function detectImageType(bytes: Buffer): string | null {

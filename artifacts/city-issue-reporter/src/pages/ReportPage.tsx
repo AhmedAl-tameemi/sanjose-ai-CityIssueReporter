@@ -6,12 +6,10 @@ import {
   CarFront,
   Check,
   CircleHelp,
-  ImagePlus,
   KeyRound,
   Lightbulb,
   MapPin,
   Trash2,
-  X,
 } from 'lucide-react';
 import { Link, useLocation, useSearch } from 'wouter';
 import { translateReport, getListTrafficReportsQueryKey } from '@workspace/api-client-react';
@@ -19,11 +17,11 @@ import { useQueryClient } from '@tanstack/react-query';
 import AddressMap from '../components/AddressMap';
 import AppNavigation from '../components/AppNavigation';
 import ResidentHome from '../components/ResidentHome';
+import EvidenceField from '../components/EvidenceField';
+import VoiceInputButton from '../components/VoiceInputButton';
 import {
   blankDraft,
   frequencies,
-  isEvidenceObjectPath,
-  isEvidencePreviewToken,
   issueTypes,
   type IssueType,
   type Report,
@@ -35,14 +33,12 @@ import {
   issueTranslationKeys,
   useLanguage,
 } from '../i18n';
+import { matchSpokenChoice } from '../lib/spokenChoice';
 import LanguageControl from '../components/LanguageControl';
-import { useResidentEvidencePreview } from '../lib/evidencePreview';
 import { assessReportSafety } from '../lib/reportSafety';
 import { clearPendingSubmission, submitPersistentReport } from '../lib/reportSubmission';
 
 type FieldErrors = Partial<Record<keyof ReportDraft, string>>;
-
-const maxEvidenceSize = 3 * 1024 * 1024;
 
 function localDateValue(date: Date): string {
   const year = date.getFullYear();
@@ -60,13 +56,22 @@ const issueIcons: Record<IssueType, typeof CarFront> = {
   Other: CircleHelp,
 };
 
-function FieldLabel({ children, optional }: { children: string; optional?: boolean }) {
+function FieldLabel({ children, optional, id, onVoice, voiceDisabled = false }: {
+  children: string;
+  optional?: boolean;
+  id?: string;
+  onVoice?: (transcript: string) => boolean | void;
+  voiceDisabled?: boolean;
+}) {
   const { t } = useLanguage();
   return (
-    <label>
-      {children}
-      {optional ? <span className="optional">({t('optional')})</span> : <span className="required">*</span>}
-    </label>
+    <div className="field-label-row">
+      <label htmlFor={id}>
+        {children}
+        {optional ? <span className="optional">({t('optional')})</span> : <span className="required">*</span>}
+      </label>
+      {onVoice && <VoiceInputButton field={children} onTranscript={onVoice} disabled={voiceDisabled} testId={`button-voice-${id ?? 'choice'}`} />}
+    </div>
   );
 }
 
@@ -81,7 +86,6 @@ export default function ReportPage() {
   const [errors, setErrors] = useState<FieldErrors>({});
   const [isSaved, setIsSaved] = useState(false);
   const [isEvidenceUploading, setIsEvidenceUploading] = useState(false);
-  const [isEvidenceDragActive, setIsEvidenceDragActive] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState('');
@@ -89,17 +93,9 @@ export default function ReportPage() {
   const [isSearchingLocation, setIsSearchingLocation] = useState(false);
   const [locationMapVersion, setLocationMapVersion] = useState(0);
   const [safetyEscalationAcknowledged, setSafetyEscalationAcknowledged] = useState(false);
-  const [localEvidencePreviewUrl, setLocalEvidencePreviewUrl] = useState<string>();
   const headingRef = useRef<HTMLHeadingElement>(null);
-  const evidenceInputRef = useRef<HTMLInputElement>(null);
   const maxReportDate = localDateValue(new Date());
   const immediateDangerDescribed = assessReportSafety(draft.description).level === 'immediate';
-
-  useEffect(() => {
-    return () => {
-      if (localEvidencePreviewUrl) URL.revokeObjectURL(localEvidencePreviewUrl);
-    };
-  }, [localEvidencePreviewUrl]);
 
   useEffect(() => {
     saveDraft(draft);
@@ -172,118 +168,6 @@ export default function ReportPage() {
     setSafetyEscalationAcknowledged(true);
   };
 
-  const clearEvidenceInput = () => {
-    if (evidenceInputRef.current) evidenceInputRef.current.value = '';
-  };
-
-  const handleEvidenceFile = async (file: File | undefined) => {
-    if (!file) return;
-
-    if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) {
-      setErrors((current) => ({ ...current, evidence: t('errorImageType') }));
-      clearEvidenceInput();
-      return;
-    }
-
-    if (file.size > maxEvidenceSize) {
-      setErrors((current) => ({ ...current, evidence: t('errorImageSize') }));
-      clearEvidenceInput();
-      return;
-    }
-
-    setIsEvidenceDragActive(false);
-    if (localEvidencePreviewUrl) URL.revokeObjectURL(localEvidencePreviewUrl);
-    setLocalEvidencePreviewUrl(URL.createObjectURL(file));
-    update('evidence', undefined);
-    setIsEvidenceUploading(true);
-    setErrors((current) => ({ ...current, evidence: undefined }));
-
-    try {
-      const response = await fetch('/api/storage/evidence', {
-        method: 'POST',
-        headers: { 'Content-Type': file.type },
-        body: file,
-      });
-      const result = (await response.json().catch(() => null)) as
-        | {
-            objectPath?: unknown;
-            contentType?: unknown;
-            size?: unknown;
-            previewToken?: unknown;
-            error?: string;
-          }
-        | null;
-
-      if (!response.ok) {
-        throw new Error(t('errorUpload'));
-      }
-      if (
-        !result ||
-        !isEvidenceObjectPath(result.objectPath) ||
-        typeof result.contentType !== 'string' ||
-        typeof result.size !== 'number' ||
-        !isEvidencePreviewToken(result.previewToken)
-      ) {
-        throw new Error(t('errorUpload'));
-      }
-
-      update('evidence', {
-        name: file.name,
-        type: result.contentType,
-        size: result.size,
-        objectPath: result.objectPath,
-        previewToken: result.previewToken,
-      });
-      setLocalEvidencePreviewUrl(undefined);
-    } catch (error) {
-      setErrors((current) => ({
-        ...current,
-        evidence: error instanceof Error ? error.message : t('errorUpload'),
-      }));
-    } finally {
-      setIsEvidenceUploading(false);
-      clearEvidenceInput();
-    }
-  };
-
-  const handleEvidenceChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    void handleEvidenceFile(event.currentTarget.files?.[0]);
-  };
-
-  const handleEvidenceDragEnter = (event: React.DragEvent<HTMLDivElement>) => {
-    if (isEvidenceUploading || !Array.from(event.dataTransfer.types).includes('Files')) return;
-    event.preventDefault();
-    setIsEvidenceDragActive(true);
-  };
-
-  const handleEvidenceDragOver = (event: React.DragEvent<HTMLDivElement>) => {
-    if (isEvidenceUploading || !Array.from(event.dataTransfer.types).includes('Files')) return;
-    event.preventDefault();
-    event.dataTransfer.dropEffect = 'copy';
-    setIsEvidenceDragActive(true);
-  };
-
-  const handleEvidenceDragLeave = (event: React.DragEvent<HTMLDivElement>) => {
-    if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
-    setIsEvidenceDragActive(false);
-  };
-
-  const handleEvidenceDrop = (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    setIsEvidenceDragActive(false);
-    if (isEvidenceUploading) return;
-    void handleEvidenceFile(event.dataTransfer.files?.[0]);
-  };
-
-  const removeEvidence = () => {
-    update('evidence', undefined);
-    if (localEvidencePreviewUrl) {
-      URL.revokeObjectURL(localEvidencePreviewUrl);
-      setLocalEvidencePreviewUrl(undefined);
-    }
-    if (evidenceInputRef.current) evidenceInputRef.current.value = '';
-  };
-
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (submissionInFlight.current) return;
@@ -292,7 +176,7 @@ export default function ReportPage() {
       return;
     }
     if (isEvidenceUploading) {
-      setErrors((current) => ({ ...current, evidence: t('errorUploadWait') }));
+      setErrors((current) => ({ ...current, evidence: t('evidenceBusy') }));
       return;
     }
     if (!validateStep(2)) {
@@ -365,18 +249,12 @@ export default function ReportPage() {
 
   const saveForLater = () => {
     if (isEvidenceUploading) {
-      setErrors((current) => ({ ...current, evidence: t('errorUploadWait') }));
+      setErrors((current) => ({ ...current, evidence: t('evidenceBusy') }));
       return;
     }
     saveDraft(draft);
     setIsSaved(true);
   };
-
-  const securedEvidencePreviewUrl = useResidentEvidencePreview(
-    draft.evidence?.objectPath,
-    draft.evidence?.previewToken,
-  );
-  const evidencePreviewUrl = localEvidencePreviewUrl ?? securedEvidencePreviewUrl;
 
   return (
     <div className="app-shell" dir={direction}>
@@ -424,7 +302,16 @@ export default function ReportPage() {
                   <p className="step-description">{t('step1Desc')}</p>
                   <div className="field-grid">
                     <div className={`field ${errors.issueType ? 'has-error' : ''}`}>
-                      <FieldLabel>{t('issueType')}</FieldLabel>
+                      <FieldLabel
+                        onVoice={(transcript) => {
+                          const options = issueTypes.map((value) => ({ value, labels: [value, t(issueTranslationKeys[value])] }));
+                          const selected = matchSpokenChoice(transcript, options);
+                          if (!selected) return false;
+                          update('issueType', selected);
+                          return true;
+                        }}
+                        voiceDisabled={isSubmitting}
+                      >{t('issueType')}</FieldLabel>
                       <div className="choice-grid" role="radiogroup" aria-label={t('issueType')}>
                         {issueTypes.map((type) => {
                           const Icon = issueIcons[type];
@@ -472,14 +359,14 @@ export default function ReportPage() {
                         {errors.date && <span id="date-error" className="error-text" role="alert">{errors.date}</span>}
                       </div>
                       <div className={`field ${errors.approximateTime ? 'has-error' : ''}`}>
-                        <FieldLabel>{t('timeLabel')}</FieldLabel>
-                        <input type="text" value={draft.approximateTime} onChange={(event) => update('approximateTime', event.target.value)} placeholder={t('timePlaceholder')} dir="auto" aria-invalid={Boolean(errors.approximateTime)} data-testid="input-approximate-time" />
+                        <FieldLabel id="input-approximate-time" voiceDisabled={isSubmitting} onVoice={(text) => update('approximateTime', text)}>{t('timeLabel')}</FieldLabel>
+                        <input id="input-approximate-time" type="text" value={draft.approximateTime} onChange={(event) => update('approximateTime', event.target.value)} placeholder={t('timePlaceholder')} dir="auto" aria-invalid={Boolean(errors.approximateTime)} data-testid="input-approximate-time" />
                         {errors.approximateTime && <span className="error-text" role="alert">{errors.approximateTime}</span>}
                       </div>
                     </div>
                     <div className={`field ${errors.description ? 'has-error' : ''}`}>
-                      <FieldLabel>{t('descriptionLabel')}</FieldLabel>
-                      <textarea value={draft.description} onChange={(event) => update('description', event.target.value)} maxLength={500} placeholder={t('descriptionPlaceholder')} dir="auto" aria-invalid={Boolean(errors.description)} data-testid="input-description" />
+                      <FieldLabel id="input-description" voiceDisabled={isSubmitting} onVoice={(text) => update('description', text.slice(0, 500))}>{t('descriptionLabel')}</FieldLabel>
+                      <textarea id="input-description" value={draft.description} onChange={(event) => update('description', event.target.value)} maxLength={500} placeholder={t('descriptionPlaceholder')} dir="auto" aria-invalid={Boolean(errors.description)} data-testid="input-description" />
                       <div className="char-count">
                         {errors.description ? <span className="error-text" role="alert">{errors.description}</span> : <span className="hint">{t('privacyHint')}</span>}
                         <span className="hint">{draft.description.length}/500</span>
@@ -499,7 +386,16 @@ export default function ReportPage() {
                       )}
                     </div>
                     <div className={`field ${errors.frequency ? 'has-error' : ''}`}>
-                      <FieldLabel>{t('frequencyLabel')}</FieldLabel>
+                      <FieldLabel
+                        onVoice={(transcript) => {
+                          const options = frequencies.map((value) => ({ value, labels: [value, t(frequencyTranslationKeys[value])] }));
+                          const selected = matchSpokenChoice(transcript, options);
+                          if (!selected) return false;
+                          update('frequency', selected);
+                          return true;
+                        }}
+                        voiceDisabled={isSubmitting}
+                      >{t('frequencyLabel')}</FieldLabel>
                       <select value={draft.frequency} onChange={(event) => update('frequency', event.target.value as ReportDraft['frequency'])} aria-invalid={Boolean(errors.frequency)} data-testid="select-frequency">
                         <option value="" disabled>{t('selectFrequency')}</option>
                         {frequencies.map((frequency) => <option key={frequency} value={frequency}>{t(frequencyTranslationKeys[frequency])}</option>)}
@@ -513,74 +409,21 @@ export default function ReportPage() {
               {step === 3 && (
                 <div className="step-content">
                   <h3 className="step-heading" ref={headingRef} tabIndex={-1}>{t('step3Title')}</h3>
-                  <p className="step-description">{t('step3Desc')}</p>
+                  <p className="step-description">{t('evidenceLabel')} · {t('optional')}</p>
                   <div className="field-grid">
-                    <div
-                      className={`field photo-evidence-field ${errors.evidence ? 'has-error' : ''} ${isEvidenceDragActive ? 'is-dragging' : ''}`}
-                      onDragEnter={handleEvidenceDragEnter}
-                      onDragOver={handleEvidenceDragOver}
-                      onDragLeave={handleEvidenceDragLeave}
-                      onDrop={handleEvidenceDrop}
-                      role="group"
-                      aria-label={t('photoLabel')}
-                      data-testid="photo-dropzone"
-                    >
-                      <FieldLabel optional>{t('photoLabel')}</FieldLabel>
-                      <span className="hint">{t('photoHint')}</span>
-                      <span className="hint">{t('photoDropHint')}</span>
-                      <button
-                        type="button"
-                        className="evidence-picker"
-                        onClick={() => evidenceInputRef.current?.click()}
-                        disabled={isEvidenceUploading}
-                        aria-busy={isEvidenceUploading}
-                        data-testid="button-add-evidence"
-                      >
-                        <ImagePlus size={18} />
-                        <span>{isEvidenceUploading ? t('uploadingPhoto') : draft.evidence ? t('replacePhoto') : t('choosePhoto')}</span>
-                      </button>
-                      <input
-                        ref={evidenceInputRef}
-                        className="file-input"
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp,image/gif"
-                        onChange={handleEvidenceChange}
-                        aria-label={t('choosePhoto')}
-                        data-testid="input-evidence"
-                      />
-                      {(draft.evidence || localEvidencePreviewUrl) && (
-                        <div className="evidence-preview">
-                          {evidencePreviewUrl && <img src={evidencePreviewUrl} alt={draft.evidence?.name || t('selectedPhoto')} />}
-                          <div className="evidence-preview-copy">
-                            <strong>{draft.evidence?.name || t('selectedPhoto')}</strong>
-                            <span>{isEvidenceUploading ? t('uploadingSecurely') : t('attached')}</span>
-                          </div>
-                          <button
-                            type="button"
-                            className="evidence-remove"
-                            onClick={removeEvidence}
-                            aria-label={t('reviewPhoto')}
-                            title={t('reviewPhoto')}
-                            data-testid="button-remove-evidence"
-                          >
-                            <X size={16} />
-                          </button>
-                        </div>
-                      )}
-                      {errors.evidence && <span className="error-text" role="alert">{errors.evidence}</span>}
-                    </div>
+                    <EvidenceField value={draft.evidence} error={errors.evidence} onChange={(value) => update('evidence', value)} onBusy={setIsEvidenceUploading} />
                     <div className="field-grid two">
                       <div className="field">
-                        <FieldLabel optional>{t('nameLabel')}</FieldLabel>
-                        <input type="text" value={draft.name} onChange={(event) => update('name', event.target.value)} placeholder={t('namePlaceholder')} dir="auto" data-testid="input-name" />
+                        <FieldLabel id="input-name" optional voiceDisabled={isSubmitting} onVoice={(text) => update('name', text)}>{t('nameLabel')}</FieldLabel>
+                        <input id="input-name" type="text" value={draft.name} onChange={(event) => update('name', event.target.value)} placeholder={t('namePlaceholder')} dir="auto" data-testid="input-name" />
                       </div>
                       <div className="field">
-                        <FieldLabel optional>{t('emailLabel')}</FieldLabel>
-                        <input type="email" value={draft.email} onChange={(event) => update('email', event.target.value)} placeholder="you@example.com" data-testid="input-email" />
+                        <FieldLabel id="input-email" optional voiceDisabled={isSubmitting} onVoice={(text) => update('email', text.trim().replace(/\s+at\s+/gi, '@').replace(/\s+dot\s+/gi, '.'))}>{t('emailLabel')}</FieldLabel>
+                        <input id="input-email" type="email" value={draft.email} onChange={(event) => update('email', event.target.value)} placeholder="you@example.com" data-testid="input-email" />
                       </div>
                     </div>
                     <div className="field">
-                      <FieldLabel optional>{t('phoneLabel')}</FieldLabel>
+                      <FieldLabel id="input-phone" optional voiceDisabled={isSubmitting} onVoice={(text) => update('phone', text)}>{t('phoneLabel')}</FieldLabel>
                       <input type="tel" value={draft.phone} onChange={(event) => update('phone', event.target.value)} placeholder="(555) 000-0000" dir="ltr" data-testid="input-phone" />
                       <span className="hint">{t('phoneHint')}</span>
                     </div>
@@ -589,7 +432,7 @@ export default function ReportPage() {
                       <div className="review-row"><span className="review-key">{t('reviewLocation')}</span><span className="review-value" dir="auto">{draft.location}</span></div>
                       <div className="review-row"><span className="review-key">{t('reviewWhen')}</span><span className="review-value" dir="auto">{draft.date} · {draft.approximateTime}</span></div>
                       <div className="review-row"><span className="review-key">{t('reviewDetails')}</span><span className="review-value" dir="auto">{draft.description}</span></div>
-                      {draft.evidence && <div className="review-row"><span className="review-key">{t('reviewPhoto')}</span><span className="review-value">{draft.evidence.name}</span></div>}
+                      {draft.evidence && <div className="review-row"><span className="review-key">{t('evidenceLabel')}</span><span className="review-value">{draft.evidence.name}</span></div>}
                     </div>
                   </div>
                 </div>
@@ -604,10 +447,11 @@ export default function ReportPage() {
               </div>
               <div className="button-row">
                 {step === 1 && <button type="button" className="button button-link" onClick={startOver} data-testid="button-start-over">{t('startOver')}</button>}
-                {step > 1 && <button type="button" className="button button-secondary" disabled={isSubmitting} onClick={() => setStep((current) => current - 1)} data-testid="button-back"><ArrowLeft size={15} /> {t('back')}</button>}
+                {step > 1 && <button type="button" className="button button-secondary" disabled={isSubmitting || isEvidenceUploading} onClick={() => setStep((current) => current - 1)} data-testid="button-back"><ArrowLeft size={15} /> {t('back')}</button>}
                 {step < 3 && <button type="button" className="button button-primary" onClick={goNext} data-testid="button-continue">{t('continue')} <ArrowRight size={15} /></button>}
-                {step === 3 && <button type="button" className="button button-secondary" onClick={saveForLater} disabled={isSubmitting} data-testid="button-save-later">{t('saveLater')}</button>}
-                {step === 3 && <button type="submit" className="button button-primary" disabled={isSubmitting} aria-busy={isSubmitting} data-testid="button-submit-report">{isTranslating ? t('translating') : isSubmitting ? t('submittingReport') : t('submitReport')} <ArrowRight size={15} /></button>}
+                {step === 3 && <button type="button" className="button button-secondary" onClick={saveForLater} disabled={isSubmitting || isEvidenceUploading} data-testid="button-save-later">{t('saveLater')}</button>}
+                {step === 3 && <button type="submit" className="button button-primary" disabled={isSubmitting || isEvidenceUploading} aria-busy={isSubmitting} data-testid="button-submit-report">{isTranslating ? t('translating') : isSubmitting ? t('submittingReport') : t('submitReport')} <ArrowRight size={15} /></button>}
+                {isEvidenceUploading && <p className="hint" role="status">{t('evidenceBusy')}</p>}
               </div>
             </div>
           </form>

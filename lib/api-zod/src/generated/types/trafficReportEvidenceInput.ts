@@ -13,7 +13,7 @@ export interface TrafficReportEvidenceInput {
   type: TrafficReportEvidenceInputType;
   /**
      * @minimum 1
-     * @maximum 3145728
+     * @maximum 20971520
      */
   size: number;
   /** @pattern ^/objects/evidence/[a-f0-9-]{36}$ */

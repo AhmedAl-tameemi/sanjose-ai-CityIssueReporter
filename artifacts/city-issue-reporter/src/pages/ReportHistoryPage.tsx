@@ -14,6 +14,7 @@ import { historyText, type HistoryKey } from '../historyI18n';
 import '../history.css';
 import AppNavigation from '../components/AppNavigation';
 import LanguageControl from '../components/LanguageControl';
+import EvidencePlayer from '../components/EvidencePlayer';
 
 function errorMessage(err: unknown): string {
   const e = err as { data?: { error?: string }; message?: string } | null;
@@ -29,10 +30,10 @@ function PhotoEvidence({ report, label, fail }: { report: TrafficReport; label: 
       {broken ? (
         <p className="history-text">{fail}</p>
       ) : (
-        <img
+        <EvidencePlayer
           src={`/api/reports/${encodeURIComponent(report.id)}/evidence`}
-          alt={`${label}: ${report.evidence.name}`}
-          loading="lazy"
+          type={report.evidence.type}
+          name={`${label}: ${report.evidence.name}`}
           onError={() => setBroken(true)}
         />
       )}
@@ -214,7 +215,7 @@ export default function ReportHistoryPage() {
                         <p className="history-text" dir="auto">{contact}</p>
                       </div>
                     )}
-                    <PhotoEvidence report={r} label={h('evidence')} fail={h('photoFail')} />
+                    <PhotoEvidence report={r} label={t('evidenceLabel')} fail={t('evidenceLoadError')} />
                     <div className="history-analysis">
                       <span className="history-label">{h('analysis')}</span>
                       {r.analysis ? (

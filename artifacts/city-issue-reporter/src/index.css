@@ -1011,6 +1011,66 @@
   color: hsl(var(--destructive));
 }
 
+.evidence-recorder,
+.recording-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.record-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+}
+
+.record-actions .button {
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px;
+  white-space: normal;
+}
+
+.recording-panel {
+  padding: 12px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 9px;
+  background: hsl(var(--background));
+}
+
+.recording-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: hsl(var(--destructive));
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.recording-status span {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.evidence-media {
+  display: block;
+  width: 100%;
+  max-width: 480px;
+  max-height: 320px;
+  border-radius: 8px;
+}
+
+.evidence-preview-media {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.evidence-preview-media .evidence-media {
+  grid-column: 1 / -1;
+}
+
 /* Confirmation receipt and translated report details. */
 .confirmation-page {
   padding: 48px 0 90px;

@@ -146,8 +146,8 @@ export const getUploadEvidenceUrl = () => {
 }
 
 /**
- * Uploads one validated image to managed private object storage.
- * @summary Upload private photo evidence
+ * Validates an evidence file and stores it privately. Images are limited to 3 MB, audio to 10 MB, and video to 20 MB.
+ * @summary Upload private photo, audio, or video evidence
  */
 export const uploadEvidence = async (uploadEvidenceBody: Blob, options?: Parameters<typeof customFetch>[1]): Promise<EvidenceUploadResponse> => {
 
@@ -213,7 +213,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UploadEvidenceMutationVariables = {data: BodyType<Blob>}
 
     /**
- * @summary Upload private photo evidence
+ * @summary Upload private photo, audio, or video evidence
  */
 export const useUploadEvidence = <TError = ErrorType<ErrorEnvelope>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadEvidence>>, TError,UploadEvidenceMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}

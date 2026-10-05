@@ -86,7 +86,7 @@ router.post("/reports", async (req, res): Promise<void> => {
     // Validate the capability, but never persist it or include it in history.
     if (req.header("x-resident-preview-token") !== evidence.previewToken ||
         !canResidentPreviewEvidence(req, evidence.objectPath)) {
-      res.status(400).json({ error: "The photo authorization expired. Please upload the photo again." });
+      res.status(400).json({ error: "The evidence authorization expired. Please attach the evidence again." });
       return;
     }
   }
