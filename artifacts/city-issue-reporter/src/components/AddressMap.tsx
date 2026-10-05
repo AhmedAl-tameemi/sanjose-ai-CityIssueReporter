@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { LocateFixed } from 'lucide-react';
 import { useLanguage } from '../i18n';
 import type { ReportDraft } from '../types/report';
 
@@ -74,6 +75,8 @@ export default function AddressMap({ draft, error, onPatch, onError, onSearching
   const draftRef = useRef(draft);
   const patchRef = useRef(onPatch);
   const [searching, setSearching] = useState(false);
+  const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'success' | 'denied' | 'unavailable'>('idle');
+  const applyPointRef = useRef<(point: Point) => void>(() => undefined);
   translateRef.current = t;
   draftRef.current = draft;
   patchRef.current = onPatch;
@@ -100,14 +103,10 @@ export default function AddressMap({ draft, error, onPatch, onError, onSearching
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       maxZoom: 19,
     }).addTo(instance);
-    const onDrag = async () => {
-      const position = marker.current?.getLatLng();
-      if (!position) return;
-      const pin: Point = { lat: position.lat, lng: position.lng };
+    const applyPoint = (pin: Point) => {
       lookupController.current?.abort();
       const controller = new AbortController();
       lookupController.current = controller;
-      // Keep a usable pin-only location even when reverse lookup finds no street address.
       patchRef.current({
         location: translateRef.current('mapPinLocation', {
           latitude: pin.lat.toFixed(5),
@@ -117,16 +116,27 @@ export default function AddressMap({ draft, error, onPatch, onError, onSearching
         pinLatitude: pin.lat,
         pinLongitude: pin.lng,
       });
-      try {
-        const result = await lookup(
-          `/reverse?format=jsonv2&addressdetails=1&zoom=18&lat=${pin.lat}&lon=${pin.lng}`,
-          controller.signal,
-        ) as AddressResult;
-        if (!active || controller.signal.aborted || !isStreetAddress(result) || !isAtPin(result, pin)) return;
-        patchRef.current({ location: result.display_name, searchedAddress: result.display_name });
-      } catch {
-        // The dropped-pin coordinates and readable fallback location are already saved.
-      }
+      instance.setView([pin.lat, pin.lng], 17);
+      marker.current?.setLatLng([pin.lat, pin.lng]);
+      marker.current?.dragging?.enable();
+      void lookup(
+        `/reverse?format=jsonv2&addressdetails=1&zoom=18&lat=${pin.lat}&lon=${pin.lng}`,
+        controller.signal,
+      ).then((result) => {
+        if (!active || controller.signal.aborted) return;
+        const address = result as AddressResult;
+        if (isStreetAddress(address) && isAtPin(address, pin)) {
+          patchRef.current({ location: address.display_name, searchedAddress: address.display_name });
+        }
+      }).catch(() => {
+        // The coordinate-based pin location remains usable if address lookup fails.
+      });
+    };
+    applyPointRef.current = applyPoint;
+    const onDrag = async () => {
+      const position = marker.current?.getLatLng();
+      if (!position) return;
+      applyPoint({ lat: position.lat, lng: position.lng });
     };
     const createMarker = (position: Point) => {
       const pin = L.marker([position.lat, position.lng], { icon: redPin, draggable: true }).addTo(instance);
@@ -143,11 +153,33 @@ export default function AddressMap({ draft, error, onPatch, onError, onSearching
       lookupController.current = null;
       marker.current = null;
       map.current = null;
+      applyPointRef.current = () => undefined;
       resizeObserver.disconnect();
       instance.remove();
       onSearching(false);
     };
   }, []);
+
+  const useCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationStatus('unavailable');
+      return;
+    }
+    setLocationStatus('loading');
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        if (!map.current) return;
+        setLocationStatus('success');
+        onError(undefined);
+        applyPointRef.current({ lat: coords.latitude, lng: coords.longitude });
+      },
+      (error) => {
+        if (error.code === error.PERMISSION_DENIED) setLocationStatus('denied');
+        else setLocationStatus('unavailable');
+      },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 },
+    );
+  };
 
   const editAddress = (value: string) => {
     lookupController.current?.abort();
@@ -212,6 +244,23 @@ export default function AddressMap({ draft, error, onPatch, onError, onSearching
     <div className={`field address-field ${error ? 'has-error' : ''}`}>
       <h4 className="address-heading">{t('locationLabel')} <span className="required">*</span></h4>
       <p className="address-instruction">{t('locationSearchHint')}</p>
+      <div className="location-permission">
+        <p className="address-instruction" id="location-permission-note">{t('locationPermissionHint')}</p>
+        <button
+          type="button"
+          className="button button-secondary current-location-button"
+          onClick={useCurrentLocation}
+          disabled={locationStatus === 'loading'}
+          aria-describedby="location-permission-note"
+          data-testid="button-use-current-location"
+        >
+          <LocateFixed size={16} aria-hidden="true" />
+          {locationStatus === 'loading' ? t('locatingYou') : t('useCurrentLocation')}
+        </button>
+        {locationStatus === 'success' && <p className="location-status" role="status" data-testid="status-current-location">{t('locationSet')}</p>}
+        {locationStatus === 'denied' && <p className="location-status location-status-error" role="alert" data-testid="status-location-error">{t('locationPermissionDenied')}</p>}
+        {locationStatus === 'unavailable' && <p className="location-status location-status-error" role="alert" data-testid="status-location-error">{t('locationUnavailable')}</p>}
+      </div>
       <label htmlFor="street-address">{t('streetAddress')} <span className="required">*</span></label>
       <input
         id="street-address"
