@@ -33,6 +33,7 @@ const rows = {
   ...evidenceRows,
   ...voiceRows,
   ...dateVoiceRows,
+  accidentsNav: ["Accidents","الحوادث المرورية","交通事故","交通事故","Mga aksidente","दुर्घटनाएं","交通事故","교통사고","تصادفات","Acidentes","ДТП","Accidentes","Tai nạn"],
   incidentMapNav: ["Incident map","خريطة الحوادث","事故地图","事故地圖","Mapa ng insidente","घटना मानचित्र","事故マップ","사고 지도","نقشه حوادث","Mapa de incidentes","Карта происшествий","Mapa de incidentes","Bản đồ sự cố"],
   homeNav: ["Home","الرئيسية","首页","首頁","Home","होम","ホーム","홈","خانه","Início","Главная","Inicio","Trang chủ"],
   reportNav: ["Report","بلاغ","报告","回報","Mag-ulat","रिपोर्ट","報告","신고","گزارش","Relatar","Сообщить","Reportar","Báo cáo"],

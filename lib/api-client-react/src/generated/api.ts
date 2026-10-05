@@ -20,10 +20,12 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  CityAccidentList,
   CityIncidentMap,
   ErrorEnvelope,
   EvidenceUploadResponse,
   HealthStatus,
+  ListCityAccidentsParams,
   ListCityIncidentsParams,
   ReportTranslationInput,
   ReportTranslationResponse,
@@ -60,6 +62,90 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getListCityAccidentsUrl = (params?: ListCityAccidentsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/city-accidents?${stringifiedParams}` : `/api/city-accidents`
+}
+
+/**
+ * @summary Paginated database of official City traffic collisions
+ */
+export const listCityAccidents = async (params?: ListCityAccidentsParams, options?: Parameters<typeof customFetch>[1]): Promise<CityAccidentList> => {
+
+  return customFetch<CityAccidentList>(getListCityAccidentsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListCityAccidentsQueryKey = (params?: ListCityAccidentsParams,) => {
+    return [
+    `/api/city-accidents`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListCityAccidentsQueryOptions = <TData = Awaited<ReturnType<typeof listCityAccidents>>, TError = ErrorType<void>>(params?: ListCityAccidentsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCityAccidents>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListCityAccidentsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listCityAccidents>>> = ({ signal }) => listCityAccidents(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listCityAccidents>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListCityAccidentsQueryResult = NonNullable<Awaited<ReturnType<typeof listCityAccidents>>>
+export type ListCityAccidentsQueryError = ErrorType<void>
+
+
+/**
+ * @summary Paginated database of official City traffic collisions
+ */
+
+export function useListCityAccidents<TData = Awaited<ReturnType<typeof listCityAccidents>>, TError = ErrorType<void>>(
+ params?: ListCityAccidentsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCityAccidents>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListCityAccidentsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getListCityIncidentsUrl = (params: ListCityIncidentsParams,) => {
   const normalizedParams = new URLSearchParams();

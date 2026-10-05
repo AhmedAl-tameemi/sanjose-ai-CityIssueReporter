@@ -9,6 +9,55 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Paginated database of official City traffic collisions
+ */
+export const listCityAccidentsQueryPageDefault = 1;
+export const listCityAccidentsQueryPageMax = 100000;
+
+export const listCityAccidentsQueryPageSizeDefault = 25;
+export const listCityAccidentsQueryPageSizeMax = 100;
+
+export const listCityAccidentsQuerySortDefault = `type`;
+export const listCityAccidentsQueryOrderDefault = `asc`;
+export const listCityAccidentsQueryAccidentTypeMax = 150;
+
+export const listCityAccidentsQueryYearDefault = `all`;
+export const listCityAccidentsQueryYearRegExp = new RegExp('^(all|20[0-9]{2})$');
+
+
+export const ListCityAccidentsQueryParams = zod.object({
+  "page": zod.coerce.number().int().min(1).max(listCityAccidentsQueryPageMax).default(listCityAccidentsQueryPageDefault),
+  "pageSize": zod.coerce.number().int().min(1).max(listCityAccidentsQueryPageSizeMax).default(listCityAccidentsQueryPageSizeDefault),
+  "sort": zod.enum(['type', 'date']).default(listCityAccidentsQuerySortDefault),
+  "order": zod.enum(['asc', 'desc']).default(listCityAccidentsQueryOrderDefault),
+  "accidentType": zod.coerce.string().max(listCityAccidentsQueryAccidentTypeMax).optional(),
+  "year": zod.coerce.string().regex(listCityAccidentsQueryYearRegExp).default(listCityAccidentsQueryYearDefault)
+})
+
+export const ListCityAccidentsResponse = zod.object({
+  "incidents": zod.array(zod.object({
+  "id": zod.string(),
+  "latitude": zod.number(),
+  "longitude": zod.number(),
+  "occurredAt": zod.coerce.date().nullable(),
+  "year": zod.string(),
+  "location": zod.string(),
+  "collisionType": zod.string(),
+  "severity": zod.enum(['fatal', 'severe', 'injury', 'none', 'unknown'])
+})),
+  "total": zod.number().int(),
+  "page": zod.number().int(),
+  "pageSize": zod.number().int(),
+  "accidentTypes": zod.array(zod.string()),
+  "availableYears": zod.array(zod.string()),
+  "lastSyncedAt": zod.coerce.date().nullable(),
+  "syncStatus": zod.enum(['pending', 'syncing', 'ready', 'error']),
+  "skippedCount": zod.number().int(),
+  "sourceUrl": zod.string().url()
+})
+
+
+/**
  * Queries the City's public Crash Locations Last Five Years dataset for a map area. Never returns private TrafficSignal submissions.
  * @summary Public City of San José historical traffic collisions
  */

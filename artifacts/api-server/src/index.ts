@@ -1,5 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { ensureCityAccidentsSynced } from "./lib/cityAccidentStore";
 
 const rawPort = process.env["PORT"];
 
@@ -22,4 +23,9 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+  const syncCityAccidents = () => {
+    void ensureCityAccidentsSynced().catch(() => logger.warn("City accident import failed; existing stored records were preserved"));
+  };
+  syncCityAccidents();
+  setInterval(syncCityAccidents, 60 * 60_000).unref();
 });

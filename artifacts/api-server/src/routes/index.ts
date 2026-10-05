@@ -5,6 +5,7 @@ import translationRouter from "./translation";
 import staffRouter from "./staff";
 import reportsRouter from "./reports";
 import cityIncidentsRouter from "./cityIncidents";
+import cityAccidentsRouter from "./cityAccidents";
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use(storageRouter);
 router.use(translationRouter);
 router.use(reportsRouter);
 router.use(cityIncidentsRouter);
+router.use(cityAccidentsRouter);
 
 export default router;

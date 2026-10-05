@@ -1,4 +1,4 @@
-import { FilePlus2, FolderClock, House, MapPinned } from 'lucide-react';
+import { CarFront, FilePlus2, FolderClock, House, MapPinned } from 'lucide-react';
 import { Link, useLocation, useSearch } from 'wouter';
 import { useLanguage } from '../i18n';
 
@@ -9,6 +9,7 @@ export default function AppNavigation() {
   const onHistory = location === '/history';
   const onReport = location === '/' && new URLSearchParams(search).get('view') === 'report';
   const onMap = location === '/incident-map';
+  const onAccidents = location === '/accidents';
   const onHome = location === '/' && !onReport;
 
   return (
@@ -48,6 +49,15 @@ export default function AppNavigation() {
       >
         <MapPinned size={19} aria-hidden="true" />
         <span>{t('incidentMapNav')}</span>
+      </Link>
+      <Link
+        href="/accidents"
+        className={`app-nav-link ${onAccidents ? 'active' : ''}`}
+        aria-current={onAccidents ? 'page' : undefined}
+        data-testid="nav-accidents"
+      >
+        <CarFront size={19} aria-hidden="true" />
+        <span>{t('accidentsNav')}</span>
       </Link>
     </nav>
   );

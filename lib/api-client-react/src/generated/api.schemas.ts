@@ -5,6 +5,16 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type CityAccidentListSyncStatus = typeof CityAccidentListSyncStatus[keyof typeof CityAccidentListSyncStatus];
+
+
+export const CityAccidentListSyncStatus = {
+  pending: 'pending',
+  syncing: 'syncing',
+  ready: 'ready',
+  error: 'error',
+} as const;
+
 export type CityIncidentSeverity = typeof CityIncidentSeverity[keyof typeof CityIncidentSeverity];
 
 
@@ -26,6 +36,20 @@ export interface CityIncident {
   location: string;
   collisionType: string;
   severity: CityIncidentSeverity;
+}
+
+export interface CityAccidentList {
+  incidents: CityIncident[];
+  total: number;
+  page: number;
+  pageSize: number;
+  accidentTypes: string[];
+  availableYears: string[];
+  /** @nullable */
+  lastSyncedAt: string | null;
+  syncStatus: CityAccidentListSyncStatus;
+  skippedCount: number;
+  sourceUrl: string;
 }
 
 export interface CityIncidentMap {
@@ -308,6 +332,45 @@ export interface TrafficReportHistory {
 export interface ErrorEnvelope {
   error: string;
 }
+
+export type ListCityAccidentsParams = {
+/**
+ * @minimum 1
+ * @maximum 100000
+ */
+page?: number;
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+pageSize?: number;
+sort?: ListCityAccidentsSort;
+order?: ListCityAccidentsOrder;
+/**
+ * @maxLength 150
+ */
+accidentType?: string;
+/**
+ * @pattern ^(all|20[0-9]{2})$
+ */
+year?: string;
+};
+
+export type ListCityAccidentsSort = typeof ListCityAccidentsSort[keyof typeof ListCityAccidentsSort];
+
+
+export const ListCityAccidentsSort = {
+  type: 'type',
+  date: 'date',
+} as const;
+
+export type ListCityAccidentsOrder = typeof ListCityAccidentsOrder[keyof typeof ListCityAccidentsOrder];
+
+
+export const ListCityAccidentsOrder = {
+  asc: 'asc',
+  desc: 'desc',
+} as const;
 
 export type ListCityIncidentsParams = {
 /**

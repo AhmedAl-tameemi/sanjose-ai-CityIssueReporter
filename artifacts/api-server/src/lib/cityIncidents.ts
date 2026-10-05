@@ -24,7 +24,7 @@ type CityRecord = {
   collisionType: string;
   severity: IncidentSeverity;
 };
-type QueryResult = { features?: Feature[]; count?: number; error?: unknown };
+type QueryResult = { features?: Feature[]; count?: number; objectIds?: number[]; error?: unknown };
 type MapResult = {
   incidents: CityRecord[];
   totalMatched: number;
@@ -77,10 +77,14 @@ export function mapCityFeature(feature: Feature): CityRecord | null {
   };
 }
 
-async function query(params: Record<string, string>): Promise<QueryResult> {
+export async function query(params: Record<string, string>, method: "GET" | "POST" = "GET"): Promise<QueryResult> {
   const url = new URL(service);
-  url.search = new URLSearchParams({ f: "json", ...params }).toString();
-  const response = await fetch(url, { signal: AbortSignal.timeout(15_000), headers: { Accept: "application/json" } });
+  const encoded = new URLSearchParams({ f: "json", ...params });
+  if (method === "GET") url.search = encoded.toString();
+  const response = await fetch(url, {
+    method, body: method === "POST" ? encoded : undefined,
+    signal: AbortSignal.timeout(15_000), headers: { Accept: "application/json" },
+  });
   if (!response.ok) throw new Error("City data HTTP request failed.");
   const data = await response.json() as QueryResult;
   if (!data || typeof data !== "object" || data.error) throw new Error("City data query failed.");
