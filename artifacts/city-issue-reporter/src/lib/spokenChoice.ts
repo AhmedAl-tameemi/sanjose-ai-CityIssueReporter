@@ -1,7 +1,10 @@
 export type SpokenOption<T extends string> = { value: T; labels: string[] };
 
 function normalizeSpokenText(value: string) {
-  return value.toLocaleLowerCase().normalize('NFKD').replace(/[\p{M}\p{P}\p{Z}\s]/gu, '').trim();
+  return value.toLocaleLowerCase().normalize('NFKD')
+    .replace(/\p{M}/gu, '')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
 }
 
 export function matchSpokenChoice<T extends string>(
@@ -14,7 +17,7 @@ export function matchSpokenChoice<T extends string>(
   const matches = options.filter(({ labels }) =>
     labels.some((label) => {
       const normalized = normalizeSpokenText(label);
-      return normalized.length >= 2 && (spoken === normalized || spoken.includes(normalized));
+      return normalized.length >= 2 && (` ${spoken} `).includes(` ${normalized} `);
     }),
   );
   return matches.length === 1 ? matches[0].value : undefined;

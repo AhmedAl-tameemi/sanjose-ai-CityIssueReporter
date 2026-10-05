@@ -17,6 +17,7 @@ type SpeechRecognizer = {
   onend: (() => void) | null;
   start: () => void;
   stop: () => void;
+  abort: () => void;
 };
 type SpeechRecognizerConstructor = new () => SpeechRecognizer;
 type SpeechRecognitionWindow = Window & {
@@ -63,12 +64,31 @@ export default function VoiceInputButton({ field, onTranscript, disabled = false
     mounted.current = true;
     return () => {
       mounted.current = false;
-      if (recognizerRef.current && activeRecognizer === recognizerRef.current) {
-        activeRecognizer = undefined;
-        try { recognizerRef.current.stop(); } catch { /* Recognition may already have ended. */ }
-      }
+      cancelListening();
     };
   }, []);
+  useEffect(() => {
+    if (disabled) cancelListening();
+    return () => cancelListening();
+  }, [language, disabled]);
+  useEffect(() => {
+    const stopWhenHidden = () => { if (document.hidden) cancelListening(); };
+    document.addEventListener('visibilitychange', stopWhenHidden);
+    return () => document.removeEventListener('visibilitychange', stopWhenHidden);
+  }, []);
+
+  const cancelListening = () => {
+    const recognizer = recognizerRef.current;
+    recognizerRef.current = undefined;
+    if (activeRecognizer === recognizer) activeRecognizer = undefined;
+    if (recognizer) {
+      try { recognizer.abort(); } catch { /* Recognition may already have ended. */ }
+    }
+    if (mounted.current) {
+      setListening(false);
+      setInterimTranscript('');
+    }
+  };
 
   const startOrStop = () => {
     const current = recognizerRef.current;
@@ -85,7 +105,7 @@ export default function VoiceInputButton({ field, onTranscript, disabled = false
     }
 
     if (activeRecognizer) {
-      try { activeRecognizer.stop(); } catch { activeRecognizer = undefined; }
+      try { activeRecognizer.abort(); } catch { activeRecognizer = undefined; }
     }
     setMessage('');
     setInterimTranscript('');
@@ -98,7 +118,7 @@ export default function VoiceInputButton({ field, onTranscript, disabled = false
     recognizer.interimResults = true;
     recognizer.maxAlternatives = 1;
     recognizer.onresult = (event) => {
-      if (!mounted.current || recognizerRef.current !== recognizer) return;
+      if (!mounted.current || recognizerRef.current !== recognizer || activeRecognizer !== recognizer) return;
       let finalText = '';
       let interimText = '';
       for (let index = 0; index < event.results.length; index += 1) {
@@ -122,6 +142,8 @@ export default function VoiceInputButton({ field, onTranscript, disabled = false
       } else if (event.error !== 'aborted') {
         setMessage(t('voiceError'));
       }
+      finishListening(recognizer);
+      try { recognizer.abort(); } catch { /* Browser errors often end recognition immediately. */ }
     };
     recognizer.onend = () => finishListening(recognizer);
     setListening(true);
@@ -145,7 +167,7 @@ export default function VoiceInputButton({ field, onTranscript, disabled = false
   };
 
   return (
-    <span className="voice-input-control">
+    <>
       <button
         type="button"
         className={`voice-input-button ${listening ? 'is-listening' : ''}`}
@@ -160,7 +182,7 @@ export default function VoiceInputButton({ field, onTranscript, disabled = false
       </button>
       {(listening && interimTranscript) && <span className="voice-input-feedback" role="status">{t('voiceInterim', { text: interimTranscript })}</span>}
       {message && <span className="voice-input-feedback" role={message === t('voiceUnsupported') ? 'status' : 'alert'}>{message}</span>}
-      {(listening && !interimTranscript) && <span className="voice-sr-status" role="status">{t('voiceListening')}</span>}
-    </span>
+      {(listening && !interimTranscript) && <span className="voice-input-feedback" role="status">{t('voiceListening')}</span>}
+    </>
   );
 }

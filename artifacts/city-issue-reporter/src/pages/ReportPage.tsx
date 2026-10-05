@@ -56,12 +56,13 @@ const issueIcons: Record<IssueType, typeof CarFront> = {
   Other: CircleHelp,
 };
 
-function FieldLabel({ children, optional, id, onVoice, voiceDisabled = false }: {
+function FieldLabel({ children, optional, id, onVoice, voiceDisabled = false, voiceTestId }: {
   children: string;
   optional?: boolean;
   id?: string;
   onVoice?: (transcript: string) => boolean | void;
   voiceDisabled?: boolean;
+  voiceTestId?: string;
 }) {
   const { t } = useLanguage();
   return (
@@ -70,7 +71,7 @@ function FieldLabel({ children, optional, id, onVoice, voiceDisabled = false }: 
         {children}
         {optional ? <span className="optional">({t('optional')})</span> : <span className="required">*</span>}
       </label>
-      {onVoice && <VoiceInputButton field={children} onTranscript={onVoice} disabled={voiceDisabled} testId={`button-voice-${id ?? 'choice'}`} />}
+      {onVoice && <VoiceInputButton field={children} onTranscript={onVoice} disabled={voiceDisabled} testId={voiceTestId ?? `button-voice-${id ?? 'choice'}`} />}
     </div>
   );
 }
@@ -296,6 +297,7 @@ export default function ReportPage() {
 
           <form onSubmit={submit} noValidate>
             <div className="form-body">
+              <p className="voice-form-note" data-testid="voice-form-note">{t('voiceHint')}</p>
               {step === 1 && (
                 <div className="step-content">
                   <h3 className="step-heading" ref={headingRef} tabIndex={-1}>{t('step1Title')}</h3>
@@ -311,6 +313,7 @@ export default function ReportPage() {
                           return true;
                         }}
                         voiceDisabled={isSubmitting}
+                        voiceTestId="button-voice-issue"
                       >{t('issueType')}</FieldLabel>
                       <div className="choice-grid" role="radiogroup" aria-label={t('issueType')}>
                         {issueTypes.map((type) => {
@@ -395,6 +398,7 @@ export default function ReportPage() {
                           return true;
                         }}
                         voiceDisabled={isSubmitting}
+                        voiceTestId="button-voice-frequency"
                       >{t('frequencyLabel')}</FieldLabel>
                       <select value={draft.frequency} onChange={(event) => update('frequency', event.target.value as ReportDraft['frequency'])} aria-invalid={Boolean(errors.frequency)} data-testid="select-frequency">
                         <option value="" disabled>{t('selectFrequency')}</option>
@@ -424,7 +428,7 @@ export default function ReportPage() {
                     </div>
                     <div className="field">
                       <FieldLabel id="input-phone" optional voiceDisabled={isSubmitting} onVoice={(text) => update('phone', text)}>{t('phoneLabel')}</FieldLabel>
-                      <input type="tel" value={draft.phone} onChange={(event) => update('phone', event.target.value)} placeholder="(555) 000-0000" dir="ltr" data-testid="input-phone" />
+                      <input id="input-phone" type="tel" value={draft.phone} onChange={(event) => update('phone', event.target.value)} placeholder="(555) 000-0000" dir="ltr" data-testid="input-phone" />
                       <span className="hint">{t('phoneHint')}</span>
                     </div>
                     <div className="review-box" aria-label={t('summaryTitle')}>

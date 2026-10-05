@@ -14,3 +14,9 @@ Device recording is optional, resident-initiated evidence collection—not conti
 **Why:** The user requested microphone/camera permission and audio/video evidence in reports, not passive surveillance or automated accident detection. Permission to record is not permission to upload or process media with AI.
 
 **How to apply:** Keep recording consent and attachment separate. Stop device access when capture ends or the page is left or hidden; discard late permission results. Any future automatic media analysis requires a separate scope and consent decision.
+
+Form dictation has a different purpose from recording evidence. Treat it as optional speech-to-editable-text assistance, not implicit consent to attach audio or submit a report.
+
+**Why:** The user separately requested microphone input instead of typing or selecting form choices. Browser speech recognition can involve a browser-managed transcription provider, so do not describe dictation as guaranteed offline or entirely on-device.
+
+**How to apply:** Keep the manual controls and review step available. Explain speech-provider processing before dictation; do not save dictation audio as evidence. Preserve the distinction between browser transcription for form entry and processing explicitly attached evidence.
