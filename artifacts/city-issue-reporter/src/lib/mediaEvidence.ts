@@ -26,6 +26,58 @@ export function recordingMimeType(kind: 'audio' | 'video'): string | undefined {
 
 export type EvidenceSelectionError = 'count' | 'combined-size';
 
+/** XHR exposes byte progress for uploads; fetch does not. Completion still waits
+ * for the server response, not merely for all request bytes to be sent. */
+export function sendEvidenceFile(
+  file: File,
+  signal: AbortSignal,
+  onProgress: (percent: number | undefined) => void,
+): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) {
+      reject(new DOMException('Upload cancelled.', 'AbortError'));
+      return;
+    }
+    const request = new XMLHttpRequest();
+    const abort = () => request.abort();
+    const cleanup = () => signal.removeEventListener('abort', abort);
+    const fail = () => {
+      cleanup();
+      reject(new Error('Evidence upload failed.'));
+    };
+    request.open('POST', '/api/storage/evidence');
+    request.setRequestHeader('Content-Type', evidenceContentType(file.type));
+    request.responseType = 'json';
+    request.timeout = 120_000;
+    request.upload.onprogress = (event) => {
+      onProgress(event.lengthComputable && event.total > 0
+        ? Math.min(100, Math.floor(event.loaded / event.total * 100))
+        : undefined);
+    };
+    request.onload = () => {
+      cleanup();
+      if (request.status < 200 || request.status >= 300) {
+        reject(new Error('Evidence upload failed.'));
+      } else {
+        resolve(request.response);
+      }
+    };
+    request.onerror = fail;
+    request.ontimeout = fail;
+    request.onabort = () => {
+      cleanup();
+      reject(new DOMException('Upload cancelled.', 'AbortError'));
+    };
+    signal.addEventListener('abort', abort, { once: true });
+    try {
+      request.send(file);
+    } catch (error) {
+      cleanup();
+      reject(error);
+    }
+  });
+}
+
 export function validateEvidenceSelection(
   files: readonly File[],
   current: readonly { size: number }[],
@@ -46,6 +98,7 @@ export async function uploadEvidenceBatch<T extends { size: number }>(
   uploadOne: (file: File) => Promise<T>,
   onChange: (attachments: T[]) => void,
   replaceIndex?: number,
+  signal?: AbortSignal,
 ): Promise<{ attachments: T[]; failedFiles: File[]; error?: EvidenceSelectionError }> {
   const error = validateEvidenceSelection(files, current, replaceIndex);
   if (error) return { attachments: [...current], failedFiles: [...files], error };
@@ -54,8 +107,10 @@ export async function uploadEvidenceBatch<T extends { size: number }>(
   const failedFiles: File[] = [];
   const selected = replaceIndex === undefined ? files : files.slice(0, 1);
   for (const file of selected) {
+    if (signal?.aborted) break;
     try {
       const uploaded = await uploadOne(file);
+      if (signal?.aborted) break;
       if (replaceIndex === undefined) attachments = [...attachments, uploaded];
       else attachments = attachments.map((item, index) => index === replaceIndex ? uploaded : item);
       onChange(attachments);

@@ -7,6 +7,8 @@ import EvidencePlayer from './EvidencePlayer';
 type Props = {
   disabled: boolean;
   canAttach: boolean;
+  // True means the attachment field took ownership, even if it retains a failed
+  // upload for retry. False leaves this preview available after validation fails.
   onAttach: (file: File) => Promise<boolean>;
   onBusy: (busy: boolean) => void;
 };

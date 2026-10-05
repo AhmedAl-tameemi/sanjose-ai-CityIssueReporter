@@ -1033,6 +1033,15 @@
   gap: 4px;
 }
 
+.evidence-upload-row .evidence-preview-copy {
+  flex: 1;
+}
+
+.evidence-upload-row progress {
+  width: 100%;
+  accent-color: hsl(var(--primary));
+}
+
 .evidence-preview-copy strong {
   overflow: hidden;
   color: hsl(var(--foreground));

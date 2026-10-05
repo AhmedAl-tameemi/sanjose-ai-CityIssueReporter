@@ -352,17 +352,22 @@ test('discard, navigation, backgrounding and automatic time limit release all de
   }
 });
 
-test('failed attachment upload preserves the local recording for retry', async () => {
+test('failed attachment upload retains the recording in the per-file retry queue', async () => {
   const { page, context, errors } = await open('allowed', true);
   try {
     if (process.env.TEST_SCREENSHOT_PATH) await page.screenshot({ path: process.env.TEST_SCREENSHOT_PATH, fullPage: true });
     await capture(page, 'audio');
     await page.getByTestId('button-attach-recording').click();
     await page.getByRole('alert').waitFor();
-    assert.equal(await page.getByTestId('button-attach-recording').isEnabled(), true);
-    assert.equal(await page.getByTestId('button-submit-report').isDisabled(), true);
-    await page.getByTestId('button-discard-recording').click();
-    await page.waitForFunction(() => !document.querySelector('[data-testid="button-submit-report"]').disabled);
+    const retry = page.getByRole('button', { name: /^Retry upload: incident-audio-/ });
+    await retry.waitFor();
+    assert.equal(await retry.isEnabled(), true);
+    await page.getByTestId('button-record-audio').waitFor();
+    assert.equal(await page.getByTestId('button-attach-recording').count(), 0);
+    await retry.click();
+    await page.getByTestId('button-record-audio').waitFor();
+    await page.getByRole('button', { name: /^Remove attachment: incident-audio-/ }).click();
+    assert.equal(await retry.count(), 0);
     assert.equal(await page.getByTestId('button-submit-report').isEnabled(), true);
     assert.deepEqual(errors, []);
   } finally { await context.close(); }
