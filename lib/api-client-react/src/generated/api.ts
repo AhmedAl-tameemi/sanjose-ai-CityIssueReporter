@@ -20,9 +20,11 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  CityIncidentMap,
   ErrorEnvelope,
   EvidenceUploadResponse,
   HealthStatus,
+  ListCityIncidentsParams,
   ReportTranslationInput,
   ReportTranslationResponse,
   StaffLoginInput,
@@ -58,6 +60,91 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getListCityIncidentsUrl = (params: ListCityIncidentsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/city-incidents?${stringifiedParams}` : `/api/city-incidents`
+}
+
+/**
+ * Queries the City's public Crash Locations Last Five Years dataset for a map area. Never returns private TrafficSignal submissions.
+ * @summary Public City of San José historical traffic collisions
+ */
+export const listCityIncidents = async (params: ListCityIncidentsParams, options?: Parameters<typeof customFetch>[1]): Promise<CityIncidentMap> => {
+
+  return customFetch<CityIncidentMap>(getListCityIncidentsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListCityIncidentsQueryKey = (params?: ListCityIncidentsParams,) => {
+    return [
+    `/api/city-incidents`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListCityIncidentsQueryOptions = <TData = Awaited<ReturnType<typeof listCityIncidents>>, TError = ErrorType<void>>(params: ListCityIncidentsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCityIncidents>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListCityIncidentsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listCityIncidents>>> = ({ signal }) => listCityIncidents(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listCityIncidents>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListCityIncidentsQueryResult = NonNullable<Awaited<ReturnType<typeof listCityIncidents>>>
+export type ListCityIncidentsQueryError = ErrorType<void>
+
+
+/**
+ * @summary Public City of San José historical traffic collisions
+ */
+
+export function useListCityIncidents<TData = Awaited<ReturnType<typeof listCityIncidents>>, TError = ErrorType<void>>(
+ params: ListCityIncidentsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCityIncidents>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListCityIncidentsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getHealthCheckUrl = () => {
 

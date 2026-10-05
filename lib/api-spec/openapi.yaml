@@ -17,6 +17,41 @@ tags:
   - name: Staff
     description: City staff authentication for evidence review.
 paths:
+  /city-incidents:
+    get:
+      operationId: listCityIncidents
+      summary: Public City of San José historical traffic collisions
+      description: Queries the City's public Crash Locations Last Five Years dataset for a map area. Never returns private TrafficSignal submissions.
+      parameters:
+        - in: query
+          name: bbox
+          required: true
+          description: West,south,east,north in WGS84. The area must be at most four degrees wide and high.
+          schema:
+            type: string
+        - in: query
+          name: year
+          schema:
+            type: string
+            pattern: '^(all|20[0-9]{2})$'
+            default: all
+        - in: query
+          name: severity
+          schema:
+            type: string
+            enum: [all, fatal, severe, injury, none]
+            default: all
+      responses:
+        "200":
+          description: Latest mapped collisions in the selected area, with explicit record limit and City source attribution.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CityIncidentMap"
+        "400":
+          description: Invalid map area or filters.
+        "503":
+          description: City public data is temporarily unavailable.
   /healthz:
     get:
       operationId: healthCheck
@@ -356,6 +391,58 @@ paths:
           description: Report or evidence not available to this viewer.
 components:
   schemas:
+    CityIncident:
+      type: object
+      required: [id, latitude, longitude, occurredAt, year, location, collisionType, severity]
+      properties:
+        id:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        occurredAt:
+          type: [string, "null"]
+          format: date-time
+        year:
+          type: string
+        location:
+          type: string
+        collisionType:
+          type: string
+        severity:
+          type: string
+          enum: [fatal, severe, injury, none, unknown]
+    CityIncidentMap:
+      type: object
+      required: [incidents, totalMatched, limit, truncated, unmappedCount, availableYears, fetchedAt, sourceName, sourceUrl]
+      properties:
+        incidents:
+          type: array
+          items:
+            $ref: "#/components/schemas/CityIncident"
+        totalMatched:
+          type: integer
+          minimum: 0
+        limit:
+          type: integer
+        truncated:
+          type: boolean
+        unmappedCount:
+          type: integer
+          minimum: 0
+        availableYears:
+          type: array
+          items:
+            type: string
+        fetchedAt:
+          type: string
+          format: date-time
+        sourceName:
+          type: string
+        sourceUrl:
+          type: string
+          format: uri
     HealthStatus:
       type: object
       properties:

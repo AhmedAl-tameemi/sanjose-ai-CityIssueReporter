@@ -7,6 +7,7 @@ import NotFound from '@/pages/not-found';
 import ConfirmationPage from './pages/ConfirmationPage';
 import ReportPage from './pages/ReportPage';
 import ReportHistoryPage from './pages/ReportHistoryPage';
+import IncidentMapPage from './pages/IncidentMapPage';
 import { LanguageProvider } from './i18n';
 import {
   Route,
@@ -26,6 +27,7 @@ function Router() {
         <Route path="/" component={ReportPage} />
         <Route path="/confirmation" component={ConfirmationPage} />
         <Route path="/history" component={ReportHistoryPage} />
+        <Route path="/incident-map" component={IncidentMapPage} />
         <Route component={NotFound} />
       </Switch>
     </RoutedErrorBoundary>

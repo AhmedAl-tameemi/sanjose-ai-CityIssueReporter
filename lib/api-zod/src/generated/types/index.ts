@@ -6,9 +6,14 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './cityIncident';
+export * from './cityIncidentMap';
+export * from './cityIncidentSeverity';
 export * from './errorEnvelope';
 export * from './evidenceUploadResponse';
 export * from './healthStatus';
+export * from './listCityIncidentsParams';
+export * from './listCityIncidentsSeverity';
 export * from './reportTranslationInput';
 export * from './reportTranslationResponse';
 export * from './staffLoginInput';

@@ -1,4 +1,4 @@
-import { FilePlus2, FolderClock, House } from 'lucide-react';
+import { FilePlus2, FolderClock, House, MapPinned } from 'lucide-react';
 import { Link, useLocation, useSearch } from 'wouter';
 import { useLanguage } from '../i18n';
 
@@ -8,6 +8,7 @@ export default function AppNavigation() {
   const { t } = useLanguage();
   const onHistory = location === '/history';
   const onReport = location === '/' && new URLSearchParams(search).get('view') === 'report';
+  const onMap = location === '/incident-map';
   const onHome = location === '/' && !onReport;
 
   return (
@@ -38,6 +39,15 @@ export default function AppNavigation() {
       >
         <FolderClock size={19} aria-hidden="true" />
         <span>{t('historyNav')}</span>
+      </Link>
+      <Link
+        href="/incident-map"
+        className={`app-nav-link ${onMap ? 'active' : ''}`}
+        aria-current={onMap ? 'page' : undefined}
+        data-testid="nav-incident-map"
+      >
+        <MapPinned size={19} aria-hidden="true" />
+        <span>{t('incidentMapNav')}</span>
       </Link>
     </nav>
   );

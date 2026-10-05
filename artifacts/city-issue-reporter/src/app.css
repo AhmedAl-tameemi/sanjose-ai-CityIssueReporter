@@ -116,8 +116,8 @@
     bottom: 0;
     left: 0;
     width: auto;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 5px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
     padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
     border: 0;
     border-top: 1px solid hsl(var(--border));

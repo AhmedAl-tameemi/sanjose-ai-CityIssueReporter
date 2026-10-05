@@ -9,6 +9,48 @@ import * as zod from 'zod';
 
 
 /**
+ * Queries the City's public Crash Locations Last Five Years dataset for a map area. Never returns private TrafficSignal submissions.
+ * @summary Public City of San José historical traffic collisions
+ */
+export const listCityIncidentsQueryYearDefault = `all`;
+export const listCityIncidentsQueryYearRegExp = new RegExp('^(all|20[0-9]{2})$');
+export const listCityIncidentsQuerySeverityDefault = `all`;
+
+export const ListCityIncidentsQueryParams = zod.object({
+  "bbox": zod.coerce.string().describe('West,south,east,north in WGS84. The area must be at most four degrees wide and high.'),
+  "year": zod.coerce.string().regex(listCityIncidentsQueryYearRegExp).default(listCityIncidentsQueryYearDefault),
+  "severity": zod.enum(['all', 'fatal', 'severe', 'injury', 'none']).default(listCityIncidentsQuerySeverityDefault)
+})
+
+export const listCityIncidentsResponseTotalMatchedMin = 0;
+
+export const listCityIncidentsResponseUnmappedCountMin = 0;
+
+
+
+export const ListCityIncidentsResponse = zod.object({
+  "incidents": zod.array(zod.object({
+  "id": zod.string(),
+  "latitude": zod.number(),
+  "longitude": zod.number(),
+  "occurredAt": zod.coerce.date().nullable(),
+  "year": zod.string(),
+  "location": zod.string(),
+  "collisionType": zod.string(),
+  "severity": zod.enum(['fatal', 'severe', 'injury', 'none', 'unknown'])
+})),
+  "totalMatched": zod.number().int().min(listCityIncidentsResponseTotalMatchedMin),
+  "limit": zod.number().int(),
+  "truncated": zod.boolean(),
+  "unmappedCount": zod.number().int().min(listCityIncidentsResponseUnmappedCountMin),
+  "availableYears": zod.array(zod.string()),
+  "fetchedAt": zod.coerce.date(),
+  "sourceName": zod.string(),
+  "sourceUrl": zod.string().url()
+})
+
+
+/**
  * Returns server health status
  * @summary Health check
  */

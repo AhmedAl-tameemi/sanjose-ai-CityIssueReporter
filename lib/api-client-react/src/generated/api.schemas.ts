@@ -5,6 +5,43 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type CityIncidentSeverity = typeof CityIncidentSeverity[keyof typeof CityIncidentSeverity];
+
+
+export const CityIncidentSeverity = {
+  fatal: 'fatal',
+  severe: 'severe',
+  injury: 'injury',
+  none: 'none',
+  unknown: 'unknown',
+} as const;
+
+export interface CityIncident {
+  id: string;
+  latitude: number;
+  longitude: number;
+  /** @nullable */
+  occurredAt: string | null;
+  year: string;
+  location: string;
+  collisionType: string;
+  severity: CityIncidentSeverity;
+}
+
+export interface CityIncidentMap {
+  incidents: CityIncident[];
+  /** @minimum 0 */
+  totalMatched: number;
+  limit: number;
+  truncated: boolean;
+  /** @minimum 0 */
+  unmappedCount: number;
+  availableYears: string[];
+  fetchedAt: string;
+  sourceName: string;
+  sourceUrl: string;
+}
+
 export interface HealthStatus {
   status: string;
 }
@@ -271,4 +308,27 @@ export interface TrafficReportHistory {
 export interface ErrorEnvelope {
   error: string;
 }
+
+export type ListCityIncidentsParams = {
+/**
+ * West,south,east,north in WGS84. The area must be at most four degrees wide and high.
+ */
+bbox: string;
+/**
+ * @pattern ^(all|20[0-9]{2})$
+ */
+year?: string;
+severity?: ListCityIncidentsSeverity;
+};
+
+export type ListCityIncidentsSeverity = typeof ListCityIncidentsSeverity[keyof typeof ListCityIncidentsSeverity];
+
+
+export const ListCityIncidentsSeverity = {
+  all: 'all',
+  fatal: 'fatal',
+  severe: 'severe',
+  injury: 'injury',
+  none: 'none',
+} as const;
 
