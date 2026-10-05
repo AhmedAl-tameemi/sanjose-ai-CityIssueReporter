@@ -1,6 +1,3 @@
-.ac-provenance h2 { margin:0 0 8px; font-size:14px; font-weight:700; }
-.ac-provenance ul { margin:0; padding-inline-start:18px; display:grid; gap:6px; }
-.ac-provenance a { color:hsl(var(--primary)); font-weight:700; }
 .ac-bar { display:flex; flex-wrap:wrap; gap:12px; align-items:end; margin-bottom:12px; }
 .ac-bar label { display:grid; gap:4px; font-size:11px; font-weight:700; color:hsl(var(--muted-foreground)); }
 .ac-bar select { min-height:40px; max-width:100%; padding:0 10px; border:1px solid hsl(var(--border)); border-radius:9px; background:hsl(var(--card)); color:hsl(var(--foreground)); font:inherit; font-size:13px; }
