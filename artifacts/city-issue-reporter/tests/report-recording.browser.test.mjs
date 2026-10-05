@@ -224,6 +224,13 @@ async function openPlayback(files, legacy = false) {
       } else {
         historyRequests.add(index);
       }
+      if (files[index].status) {
+        return route.fulfill({
+          status: files[index].status,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'Evidence unavailable' }),
+        });
+      }
       return route.fulfill({ contentType: files[index].type, body: files[index].bytes });
     }
     errors.push(`Unexpected API request: ${request.method()} ${pathname}`);
@@ -240,12 +247,53 @@ async function assertEvidenceEntries(page, files, view) {
   assert.equal(await entries.count(), files.length, `${view} must render every attachment`);
   for (const [index, file] of files.entries()) {
     const entry = entries.nth(index);
-    assert.ok((await entry.innerText()).includes(file.name), `Attachment ${index} must retain its name`);
     const kind = file.type.split('/')[0];
     const player = entry.locator(kind === 'image' ? 'img' : kind);
-    if (kind === 'image') assert.ok((await player.getAttribute('alt')).includes(file.name));
-    else assert.ok((await player.getAttribute('aria-label')).includes(file.name));
-    await assertPlayback(player, kind);
+    // Lazy images need to enter the viewport before a real decode error can occur.
+    await entry.scrollIntoViewIfNeeded();
+    if (file.broken) {
+      const alert = entry.getByRole('alert');
+      await alert.waitFor();
+      assert.equal(await alert.innerText(), 'The evidence preview could not be loaded. Saved evidence is also available in Report History.');
+      assert.equal(await entry.locator('img, audio, video').count(), 0, 'Replace the broken player, not the whole evidence list');
+    } else {
+      assert.equal(await entry.getByRole('alert').count(), 0);
+      if (kind === 'image') assert.ok((await player.getAttribute('alt')).includes(file.name));
+      else assert.ok((await player.getAttribute('aria-label')).includes(file.name));
+      await assertPlayback(player, kind);
+    }
+    assert.ok((await entry.innerText()).includes(file.name), `Attachment ${index} must retain its name`);
+  }
+}
+
+for (const kind of ['image', 'audio', 'video']) {
+  for (const failure of ['corrupt', 404, 503]) {
+    test(`${kind} evidence with ${failure === 'corrupt' ? 'corrupt bytes' : `HTTP ${failure}`} shows a per-file error without breaking other evidence in confirmation and history`, async () => {
+      const healthy = await fixtures();
+      const source = healthy.find((file) => file.type.startsWith(`${kind}/`));
+      const broken = {
+        ...source,
+        name: `unavailable-${source.name}`,
+        broken: true,
+        ...(failure === 'corrupt' ? { bytes: Buffer.from('Not valid media bytes') } : { status: failure }),
+      };
+      const files = [healthy[0], broken, ...healthy.slice(1)];
+      const { page, context, errors, previewRequests, historyRequests } = await openPlayback(files);
+      try {
+        await page.goto(`${baseUrl}/confirmation`);
+        await assertEvidenceEntries(page, files, 'confirmation');
+        await page.reload();
+        await assertEvidenceEntries(page, files, 'confirmation');
+        await page.getByTestId('button-view-report-history').click();
+        await page.waitForURL('**/history');
+        await assertEvidenceEntries(page, files, 'history');
+        await page.reload();
+        await assertEvidenceEntries(page, files, 'history');
+        assert.deepEqual([...previewRequests].sort(), [0, 1, 2, 3]);
+        assert.deepEqual([...historyRequests].sort(), [0, 1, 2, 3]);
+        assert.deepEqual(errors, []);
+      } finally { await context.close(); }
+    });
   }
 }
 

@@ -30,11 +30,20 @@ function ConfirmationEvidenceItem({ evidence, loadingLabel, errorLabel }: {
   errorLabel: string;
 }) {
   const preview = useResidentEvidencePreview(evidence.objectPath, evidence.previewToken);
+  const [failedUrl, setFailedUrl] = useState<string>();
+  const broken = Boolean(preview.url && failedUrl === preview.url);
   return (
     <div className="confirmation-evidence-item">
-      {preview.url && <EvidencePlayer src={preview.url} type={evidence.type} name={evidence.name} />}
+      {preview.url && !broken && (
+        <EvidencePlayer
+          src={preview.url}
+          type={evidence.type}
+          name={evidence.name}
+          onError={() => setFailedUrl(preview.url)}
+        />
+      )}
       {preview.isLoading && <p className="hint" role="status">{loadingLabel}</p>}
-      {preview.error && <p className="error-text" role="alert">{errorLabel}</p>}
+      {(preview.error || broken) && <p className="error-text" role="alert">{errorLabel}</p>}
       <span><ImageIcon size={15} />{evidence.name}</span>
     </div>
   );

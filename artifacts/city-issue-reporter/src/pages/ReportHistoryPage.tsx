@@ -32,7 +32,7 @@ function HistoryEvidenceItem({ report, evidence, index, label, fail }: {
   return (
     <div className="history-photo-item" data-testid={`history-evidence-${index}`}>
       {broken ? (
-        <p className="history-text">{fail}</p>
+        <p className="history-text" role="alert">{fail}</p>
       ) : (
         <EvidencePlayer
           src={`/api/reports/${encodeURIComponent(report.id)}/evidence/${index}`}
