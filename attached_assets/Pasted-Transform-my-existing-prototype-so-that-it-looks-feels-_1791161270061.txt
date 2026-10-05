@@ -1,0 +1,67 @@
+Transform my existing prototype so that it looks, feels, and functions like a modern **application**, NOT a traditional website.
+
+IMPORTANT: Keep all of the prototype’s existing functionality, database connections, AI features, data, branding, and current color scheme. Focus on changing the UX/UI and navigation so the experience feels like a real app.
+
+### App-First Design
+
+- Design the interface as an **app dashboard/interface**, not a traditional website.
+- Do NOT use a typical website layout with a large hero section, marketing sections, excessive scrolling, or a traditional website-style navigation bar.
+- Make the experience feel similar to a modern mobile or web application where users open the app to immediately complete a task.
+- Use an **app-style navigation system**, such as a bottom navigation bar on mobile and a compact sidebar or app navigation on larger screens.
+- Keep navigation persistent and easy to access.
+- Use clear screens/views for different functions instead of placing everything on one long webpage.
+- Make each screen focused on one primary task.
+
+### Mobile App Experience
+
+Prioritize a **mobile-first design**. The prototype should look and feel natural when viewed on a phone.
+
+Use:
+- Large, touch-friendly buttons
+- App-style cards
+- Rounded components
+- Clean input fields
+- Simple icons
+- Comfortable spacing
+- Clear page/screen titles
+- Bottom navigation where appropriate
+- Full-width primary action buttons on mobile
+- Smooth transitions between screens
+- Minimal scrolling when possible
+
+The user should feel like they are navigating between **screens in an app**, not clicking through pages of a website.
+
+### User Flow
+
+Create a simple app flow such as:
+
+**Home → Submit Report → Report Details → Review → Confirmation**
+
+For my city incident reporting prototype, the Home screen should immediately show the main actions available to the resident, such as **Report an Incident** and **View My Reports**.
+
+When submitting a report, guide the resident through the process step-by-step rather than overwhelming them with one large form.
+
+After submission, show a polished **confirmation screen** with:
+- Confirmation that the report was received
+- Report/reference number if available
+- Report summary
+- What happens next
+- Clear next actions
+
+### Visual Style
+
+Keep the SAME existing color scheme and branding, but modernize it.
+
+The finished prototype should feel like a polished **city services app** rather than a city information website.
+
+Use modern UI patterns, strong visual hierarchy, consistent spacing, cards, subtle shadows, rounded corners, icons, and clear typography.
+
+### Important
+
+Do NOT turn this into a marketing website.
+
+Do NOT add hero banners, promotional sections, “Learn More” sections, or other traditional website elements unless they are necessary for the application's functionality.
+
+Do NOT remove or break any current features.
+
+The goal is to make the existing prototype feel like a **real, interactive city reporting application that a resident could open on their phone and immediately use to submit and manage reports.**
