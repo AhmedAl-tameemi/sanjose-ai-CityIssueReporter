@@ -92,6 +92,15 @@ export default function AccidentsPage() {
             Official City of San José collision records saved in TrafficSignal's database. This is historical data, not live emergencies and not reports from residents. For emergencies, call 911.
           </p>
 
+          <section className="im-notice ac-provenance" aria-labelledby="accident-data-sources" data-testid="accident-data-sources">
+            <h2 id="accident-data-sources">Data sources</h2>
+            <ul>
+              <li><strong>Public dataset:</strong> <a href="https://data.sanjoseca.gov/dataset/crash-locations-last-five-years" target="_blank" rel="noopener noreferrer">City of San José — Crash Locations Last Five Years</a>. Official collision records collected by the City's Department of Transportation from police reports and imported into this database.</li>
+              <li><strong>Original documents:</strong> Individual police reports, PDFs, and other original documents are not imported or displayed here. TrafficSignal has not independently verified the underlying reports.</li>
+              <li><strong>Synthetic data:</strong> TrafficSignal does not generate or add synthetic, demo, or test accidents to this list. Private resident submissions are also excluded.</li>
+            </ul>
+          </section>
+
           <div className="ac-bar">
             <label>Sort by
               <select value={`${sort}:${order}`} onChange={(e) => { const [s, o] = e.target.value.split(':'); change(() => { setSort(s as 'type' | 'date'); setOrder(o as 'asc' | 'desc'); }); }} data-testid="select-accident-sort">
