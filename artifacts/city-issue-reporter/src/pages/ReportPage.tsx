@@ -34,6 +34,7 @@ import {
   useLanguage,
 } from '../i18n';
 import { matchSpokenChoice } from '../lib/spokenChoice';
+import { parseSpokenDate } from '../lib/spokenDate';
 import LanguageControl from '../components/LanguageControl';
 import { assessReportSafety } from '../lib/reportSafety';
 import { clearPendingSubmission, submitPersistentReport } from '../lib/reportSubmission';
@@ -357,8 +358,21 @@ export default function ReportPage() {
                   <div className="field-grid">
                     <div className="field-grid two">
                       <div className={`field ${errors.date ? 'has-error' : ''}`}>
-                        <FieldLabel>{t('dateLabel')}</FieldLabel>
+                        <FieldLabel
+                          id="input-date"
+                          voiceDisabled={isSubmitting}
+                          voiceTestId="button-voice-date"
+                          onVoice={(transcript) => {
+                            const result = parseSpokenDate(transcript, language);
+                            if (result.value) update('date', result.value);
+                            else setErrors((current) => ({
+                              ...current,
+                              date: result.error === 'future' ? t('errorFutureDate') : t('voiceDateFormat'),
+                            }));
+                          }}
+                        >{t('dateLabel')}</FieldLabel>
                         <input type="date" max={maxReportDate} value={draft.date} onChange={(event) => update('date', event.target.value)} aria-invalid={Boolean(errors.date)} aria-describedby={errors.date ? 'date-error' : undefined} data-testid="input-date" />
+                        <span className="hint">{t('voiceDateHint')}</span>
                         {errors.date && <span id="date-error" className="error-text" role="alert">{errors.date}</span>}
                       </div>
                       <div className={`field ${errors.approximateTime ? 'has-error' : ''}`}>

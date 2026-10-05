@@ -8,6 +8,7 @@ import {
 } from 'react';
 import { evidenceRows } from './evidenceI18n';
 import { voiceRows } from './voiceI18n';
+import { dateVoiceRows } from './dateVoiceI18n';
 
 export const languages = [
   { code: 'en', label: 'English', dir: 'ltr' },
@@ -31,6 +32,7 @@ export type Direction = (typeof languages)[number]['dir'];
 const rows = {
   ...evidenceRows,
   ...voiceRows,
+  ...dateVoiceRows,
   homeNav: ["Home","الرئيسية","首页","首頁","Home","होम","ホーム","홈","خانه","Início","Главная","Inicio","Trang chủ"],
   reportNav: ["Report","بلاغ","报告","回報","Mag-ulat","रिपोर्ट","報告","신고","گزارش","Relatar","Сообщить","Reportar","Báo cáo"],
   homeTitle: ["How can we help?","كيف يمكننا مساعدتك؟","我们能帮您什么？","我們能幫您什麼？","Paano kami makakatulong?","हम कैसे मदद कर सकते हैं?","どのようなご用件ですか？","무엇을 도와드릴까요?","چطور می‌توانیم کمک کنیم؟","Como podemos ajudar?","Чем мы можем помочь?","¿Cómo podemos ayudarte?","Chúng tôi có thể giúp gì?"],

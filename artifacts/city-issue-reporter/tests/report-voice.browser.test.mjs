@@ -68,9 +68,15 @@ test('speech fills choices and text throughout the form, with validated address 
   try {
     await speak(page, 'button-voice-issue', 'Illegal dumping.');
     assert.equal(await page.getByTestId('button-issue-illegal-dumping').getAttribute('aria-checked'), 'true');
+    await page.getByTestId('button-continue').click();
+    await speak(page, 'button-voice-date', 'October 4, 2025');
+    assert.equal(await page.getByTestId('input-date').inputValue(), '2025-10-04');
+    await page.getByTestId('button-back').click();
     await speak(page, 'button-voice-location', '200 East Santa Clara Street, San Jose');
     await page.waitForFunction(() => document.querySelector('[data-testid="input-location"]').value.includes('San José'));
     await page.getByTestId('button-continue').click();
+    await speak(page, 'button-voice-date', '4 de octubre de 2025');
+    assert.equal(await page.getByTestId('input-date').inputValue(), '2025-10-04');
     await speak(page, 'button-voice-input-approximate-time', 'Around ten fifteen in the morning');
     await speak(page, 'button-voice-input-description', 'Several bags of household rubbish have been left beside the intersection.');
     await speak(page, 'button-voice-frequency', 'Happens every day');
