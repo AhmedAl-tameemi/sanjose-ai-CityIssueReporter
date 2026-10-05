@@ -1664,6 +1664,7 @@
 
 .site-header {
   min-height: 72px;
+  column-gap: 48px;
   padding-inline: max(calc((100% - 1260px) / 2), 32px);
   border-bottom-width: 3px;
   background: hsl(var(--card));
@@ -1690,10 +1691,10 @@
 
 .header-history-link {
   display: inline-flex;
-  min-height: 34px;
+  min-height: 28px;
   align-items: center;
-  padding-inline: 10px;
-  font-size: 12px;
+  padding-inline: 7px;
+  font-size: 11px;
   border: 1px solid hsl(var(--border));
   border-radius: 8px;
   color: hsl(var(--primary));
@@ -2003,7 +2004,7 @@
     min-height: 62px;
     padding: 10px 16px;
     flex-wrap: wrap;
-    gap: 18px;
+    gap: 28px;
   }
 
   .brand {
@@ -2029,9 +2030,9 @@
   }
 
   .header-history-link {
-    min-height: 34px;
-    padding-inline: 8px;
-    font-size: 11px;
+    min-height: 28px;
+    padding-inline: 6px;
+    font-size: 10px;
   }
 
   .language-selector {
@@ -2117,6 +2118,6 @@
   }
 
   .header-history-link {
-    padding-inline: 7px;
+    padding-inline: 6px;
   }
 }
