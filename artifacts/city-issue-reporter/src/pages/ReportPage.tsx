@@ -371,8 +371,8 @@ export default function ReportPage() {
                             }));
                           }}
                         >{t('dateLabel')}</FieldLabel>
-                        <input type="date" max={maxReportDate} value={draft.date} onChange={(event) => update('date', event.target.value)} aria-invalid={Boolean(errors.date)} aria-describedby={errors.date ? 'date-error' : undefined} data-testid="input-date" />
-                        <span className="hint">{t('voiceDateHint')}</span>
+                        <input id="input-date" type="date" max={maxReportDate} value={draft.date} onChange={(event) => update('date', event.target.value)} aria-invalid={Boolean(errors.date)} aria-describedby={errors.date ? 'date-error voice-date-hint' : 'voice-date-hint'} data-testid="input-date" />
+                        <span id="voice-date-hint" className="hint">{t('voiceDateHint')}</span>
                         {errors.date && <span id="date-error" className="error-text" role="alert">{errors.date}</span>}
                       </div>
                       <div className={`field ${errors.approximateTime ? 'has-error' : ''}`}>

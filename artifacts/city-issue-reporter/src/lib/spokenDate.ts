@@ -13,6 +13,51 @@ const digitZeroes = [
   0xc66, 0xce6, 0xd66, 0xde6, 0xe50, 0xed0, 0xf20, 0x1040, 0x17e0, 0x1810, 0xff10,
 ];
 
+const relativeDateWords: Record<LanguageCode, [string[], string[]]> = {
+  en: [['today'], ['yesterday']], ar: [['اليوم'], ['أمس', 'امس', 'البارحة']],
+  'zh-CN': [['今天'], ['昨天']], 'zh-TW': [['今天'], ['昨天']],
+  fil: [['ngayon'], ['kahapon']], hi: [['आज'], ['बीता हुआ कल']],
+  ja: [['今日', 'きょう'], ['昨日', 'きのう']], ko: [['오늘'], ['어제']],
+  fa: [['امروز'], ['دیروز']], 'pt-BR': [['hoje'], ['ontem']],
+  ru: [['сегодня'], ['вчера']], es: [['hoy'], ['ayer']], vi: [['hôm nay'], ['hôm qua']],
+};
+
+const cardinalWords = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine',
+  'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
+const ordinalWords = ['', 'first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth',
+  'tenth', 'eleventh', 'twelfth', 'thirteenth', 'fourteenth', 'fifteenth', 'sixteenth', 'seventeenth', 'eighteenth', 'nineteenth'];
+const tensWords = ['twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+
+function englishDateNumbers(value: string) {
+  let text = value.toLowerCase().replaceAll('-', ' ');
+  const wordValues = new Map([
+    ...cardinalWords.map((word, number) => [word, number] as const),
+    ...tensWords.map((word, index) => [word, 20 + index * 10] as const),
+  ]);
+  const wordPattern = [...wordValues.keys(), 'hundred', 'and'].join('|');
+  const yearPattern = new RegExp(`\\b(two thousand|nineteen|twenty)((?:\\s+(?:${wordPattern}))*)[,\\.\\s]*$`);
+  text = text.replace(yearPattern, (phrase, prefix: string, suffix: string) => {
+    const words = suffix.trim().split(/\s+/);
+    const remainder = words.reduce((sum, word) => sum + (wordValues.get(word) ?? 0), 0);
+    if (prefix !== 'two thousand' && remainder < 10 && !words.includes('hundred')) return phrase;
+    return String((prefix === 'two thousand' ? 2000 : prefix === 'nineteen' ? 1900 : 2000) + remainder);
+  });
+  const dayWords = new Map<string, number>();
+  for (let day = 1; day <= 31; day += 1) {
+    if (day < 20) {
+      dayWords.set(cardinalWords[day], day);
+      dayWords.set(ordinalWords[day], day);
+    } else {
+      const tens = day < 30 ? 'twenty' : 'thirty';
+      const remainder = day % 10;
+      dayWords.set(remainder ? `${tens} ${cardinalWords[remainder]}` : tens, day);
+      dayWords.set(remainder ? `${tens} ${ordinalWords[remainder]}` : day === 20 ? 'twentieth' : 'thirtieth', day);
+    }
+  }
+  const daysPattern = new RegExp(`\\b(${[...dayWords.keys()].sort((a, b) => b.length - a.length).join('|')})\\b`, 'g');
+  return text.replace(daysPattern, (word) => String(dayWords.get(word)));
+}
+
 function latinizeDigits(value: string) {
   return Array.from(value, (character) => {
     const codePoint = character.codePointAt(0)!;
@@ -48,7 +93,11 @@ function localizedMonths(language: LanguageCode) {
       formatter.formatToParts(date).find((part) => part.type === 'month')?.value ?? '',
       withDay.formatToParts(date).find((part) => part.type === 'month')?.value ?? '',
     ]);
-    months.push({ month, names: [...names].filter(Boolean) });
+    months.push({
+      month,
+      names: [...names].filter(Boolean).map((name) =>
+        language === 'ja' && /^\d+$/.test(name) ? `${name}月` : name),
+    });
   }
   return months;
 }
@@ -79,8 +128,17 @@ export function parseSpokenDate(
 ): SpokenDateResult {
   const text = normalizeDateText(transcript);
   if (!text) return { error: 'invalid' };
-  const numbers = getNumericDate(transcript);
-  const namedMonth = findNamedMonth(transcript, language);
+  const [todayWords, yesterdayWords] = relativeDateWords[language];
+  const isToday = todayWords.some((word) => normalizeDateText(word) === text);
+  const isYesterday = yesterdayWords.some((word) => normalizeDateText(word) === text);
+  if (isToday || isYesterday) {
+    const date = new Date(today);
+    if (isYesterday) date.setDate(date.getDate() - 1);
+    return makeIsoDate(date.getFullYear(), date.getMonth() + 1, date.getDate(), today);
+  }
+  const dateTranscript = language === 'en' ? englishDateNumbers(transcript) : transcript;
+  const numbers = getNumericDate(dateTranscript);
+  const namedMonth = findNamedMonth(dateTranscript, language);
 
   if (namedMonth !== undefined) {
     const yearIndex = numbers.findIndex((number) => number >= 1000);
@@ -89,7 +147,7 @@ export function parseSpokenDate(
     const dayCandidates = dateNumbers.length > 1
       ? dateNumbers.filter((number, index) => !(number === namedMonth && !dateNumbers.slice(0, index).some((item) => item === namedMonth)))
       : dateNumbers;
-    if (!dayCandidates.length) return { error: 'invalid' };
+    if (dayCandidates.length !== 1) return { error: 'invalid' };
     return makeIsoDate(year, namedMonth, dayCandidates[0], today);
   }
 

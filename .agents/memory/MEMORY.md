@@ -8,3 +8,4 @@
 - [Brand continuity](brand-continuity.md) — TrafficSignal UX improvements should preserve the existing palette, logo, branding, and identity rather than rebrand.
 - [App-first interface](app-first-interface.md) — keep TrafficSignal task-focused and mobile-first, without marketing layouts or changes to its existing feature/data contracts.
 - [Incident location permission](incident-location-permission.md) — device location helps select an incident location; keep it optional and one-time, not ongoing resident tracking.
+- [Spoken date interpretation](spoken-date-interpretation.md) — locales can use different calendars; don't guess an earlier year to accept a future date.

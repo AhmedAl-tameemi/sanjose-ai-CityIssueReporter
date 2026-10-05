@@ -71,12 +71,11 @@ test('speech fills choices and text throughout the form, with validated address 
     await page.getByTestId('button-continue').click();
     await speak(page, 'button-voice-date', 'October 4, 2025');
     assert.equal(await page.getByTestId('input-date').inputValue(), '2025-10-04');
+    if (process.env.TEST_DATE_SCREENSHOT_PATH) await page.screenshot({ path: process.env.TEST_DATE_SCREENSHOT_PATH, fullPage: true });
     await page.getByTestId('button-back').click();
     await speak(page, 'button-voice-location', '200 East Santa Clara Street, San Jose');
     await page.waitForFunction(() => document.querySelector('[data-testid="input-location"]').value.includes('San José'));
     await page.getByTestId('button-continue').click();
-    await speak(page, 'button-voice-date', '4 de octubre de 2025');
-    assert.equal(await page.getByTestId('input-date').inputValue(), '2025-10-04');
     await speak(page, 'button-voice-input-approximate-time', 'Around ten fifteen in the morning');
     await speak(page, 'button-voice-input-description', 'Several bags of household rubbish have been left beside the intersection.');
     await speak(page, 'button-voice-frequency', 'Happens every day');
@@ -119,8 +118,28 @@ test('localized spoken choices use the selected language and webkit fallback', a
     assert.equal(await page.evaluate(() => window.speechRecognizers.at(-1).lang), 'es-US');
     assert.equal(await page.getByTestId('button-issue-potholes').getAttribute('aria-checked'), 'true');
     await page.getByTestId('button-continue').click();
+    await speak(page, 'button-voice-date', '4 de octubre de 2025');
+    assert.equal(await page.getByTestId('input-date').inputValue(), '2025-10-04');
     await speak(page, 'button-voice-frequency', 'Ocurre todos los días');
     assert.equal(await page.getByTestId('select-frequency').inputValue(), 'Happens every day');
+  } finally { await context.close(); }
+});
+
+test('unrecognized and future spoken dates keep the existing date and show guidance', async () => {
+  const { context, page, errors } = await open();
+  try {
+    await page.getByTestId('button-continue').click();
+    const existing = await page.getByTestId('input-date').inputValue();
+    await speak(page, 'button-voice-date', 'next Thursday');
+    assert.equal(await page.getByTestId('input-date').inputValue(), existing);
+    assert.ok((await page.locator('#date-error').textContent()).includes('Say the month'));
+    await speak(page, 'button-voice-date', 'October 4, 2030');
+    assert.equal(await page.getByTestId('input-date').inputValue(), existing);
+    assert.ok((await page.locator('#date-error').textContent()).includes('today or an earlier date'));
+    await speak(page, 'button-voice-date', 'October 4, 2025');
+    assert.equal(await page.getByTestId('input-date').inputValue(), '2025-10-04');
+    assert.equal(await page.locator('#date-error').count(), 0);
+    assert.deepEqual(errors, []);
   } finally { await context.close(); }
 });
 
