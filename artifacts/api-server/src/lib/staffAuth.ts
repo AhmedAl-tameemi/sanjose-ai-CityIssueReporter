@@ -12,7 +12,7 @@ const residentOwnerIdPattern = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}
 export type StaffRole = "city-evidence-reviewer" | "city-admin";
 
 export type StaffSession = {
-  email: string;
+  staffId: string;
   role: StaffRole;
   exp: number;
 };
@@ -20,7 +20,8 @@ export type StaffSession = {
 type SignedTokenPayload = {
   aud: "city-staff-session" | "resident-evidence-preview" | "resident-report-owner";
   exp: number;
-  email?: string;
+  staffId?: string;
+  pinVersion?: string;
   role?: StaffRole;
   objectPath?: string;
   ownerId?: string;
@@ -81,24 +82,27 @@ export function isStaffAuthConfigured(): boolean {
   return Boolean(
     process.env.SESSION_SECRET &&
       process.env.SESSION_SECRET.length >= 32 &&
-      process.env.CITY_STAFF_PASSWORD &&
-      getStaffEmails().length > 0,
+      getStaffPinCredentials(),
   );
 }
 
-export function verifyStaffCredentials(email: string, password: string): boolean {
-  if (!isStaffAuthConfigured()) return false;
-
-  const normalizedEmail = email.trim().toLowerCase();
-  if (!getStaffEmails().includes(normalizedEmail)) return false;
-
-  return safeEqual(password, process.env.CITY_STAFF_PASSWORD ?? "");
+export function verifyStaffPin(pin: string): string | null {
+  if (!isStaffAuthConfigured() || !/^[0-9]{4}$/.test(pin)) return null;
+  let matchedStaffId: string | null = null;
+  // Compare every configured PIN, rather than returning early for one staff ID.
+  for (const [staffId, expectedPin] of Object.entries(getStaffPinCredentials() ?? {})) {
+    if (safeEqual(pin, expectedPin)) matchedStaffId = staffId;
+  }
+  return matchedStaffId;
 }
 
-export function createStaffSession(email: string, role: StaffRole = "city-evidence-reviewer"): string {
+export function createStaffSession(staffId: string, role: StaffRole = "city-evidence-reviewer"): string {
+  const pin = getStaffPinCredentials()?.[staffId];
+  if (!pin) throw new Error("Cannot create a session for unconfigured staff.");
   return createToken({
     aud: "city-staff-session",
-    email: email.trim().toLowerCase(),
+    staffId,
+    pinVersion: sign(`staff-pin:${staffId}:${pin}`),
     role,
     exp: Math.floor(Date.now() / 1000) + staffSessionTtlSeconds,
   });
@@ -113,14 +117,19 @@ export function getStaffSession(req: Request): StaffSession | null {
   const payload = readToken(token, "city-staff-session");
   if (
     !payload ||
-    typeof payload.email !== "string" ||
+    typeof payload.staffId !== "string" ||
+    typeof payload.pinVersion !== "string" ||
     (payload.role !== "city-evidence-reviewer" && payload.role !== "city-admin")
   ) {
     return null;
   }
+  const pin = getStaffPinCredentials()?.[payload.staffId];
+  if (!pin || !safeEqual(payload.pinVersion, sign(`staff-pin:${payload.staffId}:${pin}`))) {
+    return null;
+  }
 
   return {
-    email: payload.email,
+    staffId: payload.staffId,
     role: payload.role,
     exp: payload.exp,
   };
@@ -201,11 +210,24 @@ export function clearStaffSessionCookie(res: Response): void {
   );
 }
 
-function getStaffEmails(): string[] {
-  return (process.env.CITY_STAFF_EMAILS ?? "")
-    .split(",")
-    .map((email) => email.trim().toLowerCase())
-    .filter(Boolean);
+function getStaffPinCredentials(): Record<string, string> | null {
+  try {
+    const credentials: unknown = JSON.parse(process.env.CITY_STAFF_PIN_CREDENTIALS ?? "");
+    if (!credentials || typeof credentials !== "object" || Array.isArray(credentials)) return null;
+    const entries = Object.entries(credentials);
+    if (!entries.length) return null;
+    const pins = new Set<string>();
+    for (const [staffId, pin] of entries) {
+      if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(staffId) ||
+          typeof pin !== "string" || !/^[0-9]{4}$/.test(pin) || pins.has(pin)) return null;
+      pins.add(pin);
+    }
+    return credentials as Record<string, string>;
+  } catch {
+    // Invalid or duplicated credentials disable staff access, never fall back
+    // to the former shared password or accept an ambiguous staff identity.
+    return null;
+  }
 }
 
 function getCookieToken(req: Request): string | null {

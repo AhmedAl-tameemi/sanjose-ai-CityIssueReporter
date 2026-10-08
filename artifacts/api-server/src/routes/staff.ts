@@ -5,10 +5,17 @@ import {
   getStaffSession,
   isStaffAuthConfigured,
   setStaffSessionCookie,
-  verifyStaffCredentials,
+  verifyStaffPin,
 } from "../lib/staffAuth";
+import { StaffLoginRateLimiter } from "../lib/staffLoginRateLimit";
 
 const router: IRouter = Router();
+const attempts = new StaffLoginRateLimiter();
+
+function rejectLimitedLogin(res: Response, seconds: number): void {
+  res.setHeader("Retry-After", String(seconds));
+  res.status(429).json({ error: "Too many failed PIN attempts. Try again in 15 minutes." });
+}
 
 router.post("/staff/login", (req: Request, res: Response) => {
   if (!isStaffAuthConfigured()) {
@@ -16,23 +23,32 @@ router.post("/staff/login", (req: Request, res: Response) => {
     return;
   }
 
-  const email = typeof req.body?.email === "string" ? req.body.email : "";
-  const password = typeof req.body?.password === "string" ? req.body.password : "";
-  if (!email.trim() || !password) {
-    res.status(400).json({ error: "Email and password are required." });
+  // Use Express's peer address, not a caller-supplied forwarding header.
+  const client = req.ip ?? req.socket.remoteAddress ?? "unknown";
+  const retryAfter = attempts.retryAfter(client);
+  if (retryAfter) {
+    rejectLimitedLogin(res, retryAfter);
+    return;
+  }
+  const pin = typeof req.body?.pin === "string" ? req.body.pin : "";
+  if (!/^[0-9]{4}$/.test(pin)) {
+    res.status(400).json({ error: "A four-digit PIN is required." });
     return;
   }
 
-  if (!verifyStaffCredentials(email, password)) {
-    res.status(401).json({ error: "The staff credentials are not valid." });
+  const staffId = verifyStaffPin(pin);
+  if (!staffId) {
+    const cooldown = attempts.failure(client);
+    if (cooldown) rejectLimitedLogin(res, cooldown);
+    else res.status(401).json({ error: "The staff PIN is not valid." });
     return;
   }
 
-  const normalizedEmail = email.trim().toLowerCase();
-  setStaffSessionCookie(res, createStaffSession(normalizedEmail));
+  attempts.success(client);
+  setStaffSessionCookie(res, createStaffSession(staffId));
   res.json({
     authenticated: true,
-    email: normalizedEmail,
+    staffId,
     role: "city-evidence-reviewer",
   });
 });
@@ -46,7 +62,7 @@ router.get("/staff/session", (req: Request, res: Response) => {
 
   res.json({
     authenticated: true,
-    email: session.email,
+    staffId: session.staffId,
     role: session.role,
   });
 });

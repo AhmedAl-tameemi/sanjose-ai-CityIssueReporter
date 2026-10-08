@@ -290,6 +290,16 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
+        "429":
+          description: Too many failed PIN attempts. Retry after the cooldown.
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
         "503":
           description: Staff access has not been configured.
           content:
@@ -529,23 +539,18 @@ components:
     StaffLoginInput:
       type: object
       properties:
-        email:
+        pin:
           type: string
-          format: email
-        password:
-          type: string
-          minLength: 1
+          pattern: '^[0-9]{4}$'
       required:
-        - email
-        - password
+        - pin
     StaffSession:
       type: object
       properties:
         authenticated:
           type: boolean
-        email:
+        staffId:
           type: string
-          format: email
         role:
           type: string
           enum:
@@ -553,7 +558,7 @@ components:
             - city-admin
       required:
         - authenticated
-        - email
+        - staffId
         - role
     ReportTranslationInput:
       type: object

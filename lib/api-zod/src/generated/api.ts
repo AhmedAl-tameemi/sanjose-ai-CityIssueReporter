@@ -166,17 +166,16 @@ export const TranslateReportResponse = zod.object({
 /**
  * @summary Authenticate a City staff member
  */
-
+export const staffLoginBodyPinRegExp = new RegExp('^[0-9]{4}$');
 
 
 export const StaffLoginBody = zod.object({
-  "email": zod.string().email(),
-  "password": zod.string().min(1)
+  "pin": zod.string().regex(staffLoginBodyPinRegExp)
 })
 
 export const StaffLoginResponse = zod.object({
   "authenticated": zod.boolean(),
-  "email": zod.string().email(),
+  "staffId": zod.string(),
   "role": zod.enum(['city-evidence-reviewer', 'city-admin'])
 })
 
@@ -186,7 +185,7 @@ export const StaffLoginResponse = zod.object({
  */
 export const GetStaffSessionResponse = zod.object({
   "authenticated": zod.boolean(),
-  "email": zod.string().email(),
+  "staffId": zod.string(),
   "role": zod.enum(['city-evidence-reviewer', 'city-admin'])
 })
 

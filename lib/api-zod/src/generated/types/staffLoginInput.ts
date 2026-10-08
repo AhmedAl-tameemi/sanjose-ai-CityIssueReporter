@@ -7,7 +7,6 @@
  */
 
 export interface StaffLoginInput {
-  email: string;
-  /** @minLength 1 */
-  password: string;
+  /** @pattern ^[0-9]{4}$ */
+  pin: string;
 }

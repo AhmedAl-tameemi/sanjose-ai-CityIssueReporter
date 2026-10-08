@@ -9,6 +9,6 @@ import type { StaffSessionRole } from './staffSessionRole';
 
 export interface StaffSession {
   authenticated: boolean;
-  email: string;
+  staffId: string;
   role: StaffSessionRole;
 }

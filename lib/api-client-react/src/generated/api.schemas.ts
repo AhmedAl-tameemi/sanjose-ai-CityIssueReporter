@@ -80,9 +80,8 @@ export interface EvidenceUploadResponse {
 }
 
 export interface StaffLoginInput {
-  email: string;
-  /** @minLength 1 */
-  password: string;
+  /** @pattern ^[0-9]{4}$ */
+  pin: string;
 }
 
 export type StaffSessionRole = typeof StaffSessionRole[keyof typeof StaffSessionRole];
@@ -95,7 +94,7 @@ export const StaffSessionRole = {
 
 export interface StaffSession {
   authenticated: boolean;
-  email: string;
+  staffId: string;
   role: StaffSessionRole;
 }
 

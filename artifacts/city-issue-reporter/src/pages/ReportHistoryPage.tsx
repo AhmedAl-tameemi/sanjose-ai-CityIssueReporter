@@ -74,8 +74,7 @@ export default function ReportHistoryPage() {
   const query = useListTrafficReports();
   const login = useStaffLogin();
   const logout = useStaffLogout();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [pin, setPin] = useState('');
   const [authError, setAuthError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -104,8 +103,8 @@ export default function ReportHistoryPage() {
     setAuthError(null);
     setBusy(true);
     try {
-      await login.mutateAsync({ data: { email, password } });
-      setPassword('');
+      await login.mutateAsync({ data: { pin } });
+      setPin('');
       await resetAndRefetch();
     } catch (err) {
       setAuthError(errorMessage(err));
@@ -178,13 +177,11 @@ export default function ReportHistoryPage() {
             </button>
           ) : (
             <form onSubmit={onLogin}>
-              <label>Staff email
-                <input type="email" required autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} data-testid="input-staff-email" />
+              <label>4-digit staff PIN
+                <input type="password" required inputMode="numeric" pattern="[0-9]{4}" maxLength={4} autoComplete="current-password" value={pin} onChange={(e) => setPin(e.target.value.replace(/[^0-9]/g, '').slice(0, 4))} data-testid="input-staff-pin" aria-describedby="staff-pin-hint" disabled={busy} />
+                <span className="hint" id="staff-pin-hint">Enter the PIN assigned to you. No email needed.</span>
               </label>
-              <label>Password
-                <input type="password" required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} data-testid="input-staff-password" />
-              </label>
-              <button type="submit" className="button button-primary" disabled={busy} data-testid="button-staff-login">
+              <button type="submit" className="button button-primary" disabled={busy || pin.length !== 4} data-testid="button-staff-login">
                 {busy ? 'Signing in…' : 'Staff sign in'}
               </button>
             </form>

@@ -14,3 +14,9 @@ The public Incident map should use official City-published historical collision 
 **Why:** The owner requested previous incidents reported by the City of San José. That request does not revoke the existing resident-report privacy requirement or establish consent to publish residents' incident locations.
 
 **How to apply:** Keep City open data distinct from app submissions. Any future public community-report layer needs a separate scope and privacy/consent decision; do not expose it just because the app now has a public map.
+
+Staff sign-in should use an individually assigned four-digit PIN, with no email field at login.
+
+**Why:** The owner explicitly chose a separate PIN for each staff member rather than one shared PIN, so staff access remains individually attributable.
+
+**How to apply:** Associate each administrator-issued PIN with a stable staff identifier. Keep report and evidence access enforced on the server; do not replace individual assignments with a shared code or allow residents to self-register staff PINs.
