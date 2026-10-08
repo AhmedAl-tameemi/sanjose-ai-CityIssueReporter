@@ -4,8 +4,11 @@ import cookieParser from "cookie-parser";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { configureTrustedProxy } from "./lib/trustedProxy";
 
 const app: Express = express();
+
+configureTrustedProxy(app);
 
 app.use(
   pinoHttp({

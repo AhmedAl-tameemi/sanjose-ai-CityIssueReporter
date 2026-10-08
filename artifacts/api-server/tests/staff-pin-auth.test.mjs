@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { createStaffSession, getStaffSession, isStaffAuthConfigured, verifyStaffPin } from "../src/lib/staffAuth.ts";
-import { StaffLoginRateLimiter } from "../src/lib/staffLoginRateLimit.ts";
+import { StaffLoginRateLimiter, staffClientKey } from "../src/lib/staffLoginRateLimit.ts";
 
 // Synthetic fixtures, not credentials for the running application.
 process.env.SESSION_SECRET = "unit-test-signing-secret-not-for-production";
@@ -39,15 +39,27 @@ test("sessions contain individual staff identity and expire when a PIN is rotate
   assert.equal(getStaffSession(request(token)), null);
 });
 
-test("five failed guesses cause a 15-minute cooldown, isolated from other clients", () => {
-  const limiter = new StaffLoginRateLimiter();
-  const now = 1000;
-  for (let n = 0; n < 4; n++) assert.equal(limiter.failure("client-a", now), 0);
-  assert.equal(limiter.failure("client-a", now), 900);
-  assert.equal(limiter.retryAfter("client-a", now + 1000), 899);
-  assert.equal(limiter.retryAfter("client-b", now + 1000), 0);
-  assert.equal(limiter.retryAfter("client-a", now + 900000), 0);
-  assert.equal(limiter.failure("client-a", now + 900000), 0);
-  limiter.success("client-a");
-  assert.equal(limiter.retryAfter("client-a", now + 900001), 0);
+test("cooldown uses the store clock, expires, resets on success, and blocks even correct PINs", async () => {
+  let now = 1000;
+  const states = new Map();
+  const store = { async locked(key, decide) {
+    const state = states.get(key) ?? { failures: 0, expiresAt: 0 };
+    states.set(key, state);
+    return decide(state, now);
+  }};
+  const limiter = new StaffLoginRateLimiter(store);
+  for (let n = 0; n < 4; n++) assert.equal((await limiter.attempt("client-a", () => null)).retryAfter, 0);
+  assert.equal((await limiter.attempt("client-a", () => null)).retryAfter, 900);
+  now += 1000;
+  assert.equal((await limiter.attempt("client-a", () => { assert.fail("must not verify while blocked"); })).retryAfter, 899);
+  assert.equal((await limiter.attempt("client-b", () => "staff-b")).staffId, "staff-b");
+  now += 899000;
+  assert.equal((await limiter.attempt("client-a", () => "staff-a")).staffId, "staff-a");
+  assert.equal(states.get(staffClientKey("client-a")).failures, 0);
+});
+
+test("address representations cannot create extra guessing budgets", () => {
+  assert.equal(staffClientKey("192.0.2.1"), staffClientKey("::ffff:192.0.2.1"));
+  assert.equal(staffClientKey("192.0.2.1"), staffClientKey("::ffff:c000:201"));
+  assert.equal(staffClientKey("2001:DB8:0:0:0:0:0:1"), staffClientKey("2001:db8::1"));
 });

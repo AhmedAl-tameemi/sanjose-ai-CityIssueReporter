@@ -1,39 +1,61 @@
-type Attempts = { failures: number; expiresAt: number };
+import { createHash } from "node:crypto";
+import { isIP } from "node:net";
 
-/** Small, server-side cooldown. No PINs or staff IDs are kept in this map. */
+export type AttemptState = { failures: number; expiresAt: number };
+export type LoginDecision = { retryAfter: number; staffId: string | null };
+export interface StaffAttemptStore {
+  /** Must lock this key across ALL instances until the updated state is durable. */
+  locked<T>(key: string, decide: (state: AttemptState, now: number) => T): Promise<T>;
+}
+
+/** Canonicalize addresses, including IPv4-mapped IPv6, before hashing the key. */
+export function staffClientKey(address: string): string {
+  let canonical = address.toLowerCase();
+  if (isIP(canonical) === 6) {
+    canonical = new URL(`http://[${canonical}]/`).hostname.slice(1, -1);
+    const mapped = /^::ffff:([a-f0-9]+):([a-f0-9]+)$/.exec(canonical);
+    if (mapped) {
+      const value = parseInt(mapped[1], 16) * 65536 + parseInt(mapped[2], 16);
+      canonical = [24, 16, 8, 0].map((shift) => (value >>> shift) & 255).join(".");
+    }
+  }
+  return createHash("sha256").update(`staff-login:${canonical}`).digest("hex");
+}
+
 export class StaffLoginRateLimiter {
-  private attempts = new Map<string, Attempts>();
+  private store: StaffAttemptStore;
   private maxFailures: number;
   private cooldownMs: number;
 
-  constructor(maxFailures = 5, cooldownMs = 15 * 60 * 1000) {
+  constructor(store: StaffAttemptStore, maxFailures = 5, cooldownMs = 15 * 60 * 1000) {
+    this.store = store;
     this.maxFailures = maxFailures;
     this.cooldownMs = cooldownMs;
   }
 
-  retryAfter(key: string, now = Date.now()): number {
-    const entry = this.attempts.get(key);
-    if (!entry) return 0;
-    if (entry.expiresAt <= now) {
-      this.attempts.delete(key);
-      return 0;
-    }
-    return entry.failures >= this.maxFailures ? Math.ceil((entry.expiresAt - now) / 1000) : 0;
-  }
-
-  failure(key: string, now = Date.now()): number {
-    // Prune expired entries so the limiter cannot accumulate stale clients.
-    for (const [client, entry] of this.attempts) {
-      if (entry.expiresAt <= now) this.attempts.delete(client);
-    }
-    const entry = this.attempts.get(key) ?? { failures: 0, expiresAt: now + this.cooldownMs };
-    entry.failures += 1;
-    if (entry.failures === this.maxFailures) entry.expiresAt = now + this.cooldownMs;
-    this.attempts.set(key, entry);
-    return this.retryAfter(key, now);
-  }
-
-  success(key: string): void {
-    this.attempts.delete(key);
+  async attempt(address: string, verify: () => string | null): Promise<LoginDecision> {
+    return this.store.locked(staffClientKey(address), (state, now) => {
+      if (state.expiresAt <= now) {
+        state.failures = 0;
+        state.expiresAt = now + this.cooldownMs;
+      }
+      if (state.failures >= this.maxFailures) {
+        return { retryAfter: Math.ceil((state.expiresAt - now) / 1000), staffId: null };
+      }
+      // Verification and counter updates share the same lock: a concurrent
+      // request cannot sneak another guess in between checking and incrementing.
+      const staffId = verify();
+      if (staffId) {
+        state.failures = 0;
+        state.expiresAt = now;
+        return { retryAfter: 0, staffId };
+      }
+      state.failures += 1;
+      if (state.failures === this.maxFailures) state.expiresAt = now + this.cooldownMs;
+      return {
+        retryAfter: state.failures >= this.maxFailures ? Math.ceil((state.expiresAt - now) / 1000) : 0,
+        staffId: null,
+      };
+    });
   }
 }

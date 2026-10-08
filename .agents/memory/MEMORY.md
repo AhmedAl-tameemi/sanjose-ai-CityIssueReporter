@@ -10,3 +10,4 @@
 - [App-first interface](app-first-interface.md) — keep TrafficSignal task-focused and mobile-first, without marketing layouts or changes to its existing feature/data contracts.
 - [Incident location permission](incident-location-permission.md) — device location helps select an incident location; keep it optional and one-time, not ongoing resident tracking.
 - [Spoken date interpretation](spoken-date-interpretation.md) — locales can use different calendars; don't guess an earlier year to accept a future date.
+- [Staff proxy trust](staff-proxy-trust.md) — verify ingress before trusting forwarding; preview retained spoofed X-Real-IP, and published topology is not guaranteed.
