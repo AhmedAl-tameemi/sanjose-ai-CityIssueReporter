@@ -29,7 +29,7 @@ const fixtureReport = {
   },
   evidence: [{ name: "test-photo.png", type: "image/png", size: 1024 }],
   analysis: {
-    summary: "An unverified automated test summary.",
+    summary: "An unverified automated test summary describes the resident's statement. One test photo was submitted with this report.",
     urgency: "medium",
     suggestedCategory: "unsafe_driving",
     recommendedAction: "Review the resident statement and attached evidence.",
@@ -203,6 +203,7 @@ test("staff printout compiles only the selected report and labels sources correc
   const page = await openHistory("staff");
   try {
     assert.equal(await page.locator('[data-testid^="button-print-report-"]').count(), 2);
+    assert.equal(await page.getByTestId("text-ai-summary-fixture-main").innerText(), fixtureReport.analysis.summary);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
     await page.getByTestId("button-print-report-fixture-main").click();
     await page.waitForFunction(() => window.__printCalls === 1);
@@ -211,6 +212,7 @@ test("staff printout compiles only the selected report and labels sources correc
     assert.equal(await document.count(), 1);
     assert.equal(await document.isVisible(), true);
     const text = await document.innerText();
+    assert.ok((await document.locator(".city-report-ai-summary").innerText()).includes(fixtureReport.analysis.summary));
     for (const expected of [
       "TS-TEST-001", "Test intersection", "Test street address", "2026-10-07", "8:30 AM",
       "37.338200, -121.886300", "Test Resident", "resident@example.invalid", "Not provided",

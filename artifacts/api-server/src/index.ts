@@ -2,6 +2,7 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { ensureCityAccidentsSynced } from "./lib/cityAccidentStore";
 import { PostgresStaffAttemptStore } from "./lib/staffAttemptStore";
+import { ensureReportSummaries } from "./lib/reportSummaryBackfill";
 
 const rawPort = process.env["PORT"];
 
@@ -30,6 +31,11 @@ app.listen(port, (err) => {
   };
   pruneAttempts();
   setInterval(pruneAttempts, 60 * 60_000).unref();
+  const refreshSummaries = () => {
+    void ensureReportSummaries().catch(() => logger.warn("AI summary recovery failed; original reports were preserved"));
+  };
+  refreshSummaries();
+  setInterval(refreshSummaries, 60_000).unref();
   const syncCityAccidents = () => {
     void ensureCityAccidentsSynced().catch(() => logger.warn("City accident import failed; existing stored records were preserved"));
   };

@@ -201,7 +201,7 @@ export const listTrafficReportsResponseReportsItemOriginalReportEmailMax = 320;
 
 export const listTrafficReportsResponseReportsItemOriginalReportPhoneMax = 80;
 
-export const listTrafficReportsResponseReportsItemAnalysisOneSummaryMax = 500;
+export const listTrafficReportsResponseReportsItemAnalysisOneSummaryMax = 1200;
 
 export const listTrafficReportsResponseReportsItemAnalysisOneRecommendedActionMax = 500;
 
@@ -233,7 +233,7 @@ export const ListTrafficReportsResponse = zod.object({
   "size": zod.number().int()
 })),
   "analysis": zod.union([zod.object({
-  "summary": zod.string().max(listTrafficReportsResponseReportsItemAnalysisOneSummaryMax),
+  "summary": zod.string().max(listTrafficReportsResponseReportsItemAnalysisOneSummaryMax).describe('A concise English AI summary of the submitted report in 2 to 5 sentences. Includes only reported facts and does not imply independent verification.'),
   "urgency": zod.enum(['low', 'medium', 'high']),
   "suggestedCategory": zod.enum(['speeding', 'pothole', 'unsafe_crossing', 'distracted_driving', 'unsafe_driving', 'streetlight', 'illegal_dumping', 'other']),
   "recommendedAction": zod.string().max(listTrafficReportsResponseReportsItemAnalysisOneRecommendedActionMax)
@@ -358,7 +358,7 @@ export const createTrafficReportResponseOriginalReportEmailMax = 320;
 
 export const createTrafficReportResponseOriginalReportPhoneMax = 80;
 
-export const createTrafficReportResponseAnalysisOneSummaryMax = 500;
+export const createTrafficReportResponseAnalysisOneSummaryMax = 1200;
 
 export const createTrafficReportResponseAnalysisOneRecommendedActionMax = 500;
 
@@ -389,7 +389,7 @@ export const CreateTrafficReportResponse = zod.object({
   "size": zod.number().int()
 })),
   "analysis": zod.union([zod.object({
-  "summary": zod.string().max(createTrafficReportResponseAnalysisOneSummaryMax),
+  "summary": zod.string().max(createTrafficReportResponseAnalysisOneSummaryMax).describe('A concise English AI summary of the submitted report in 2 to 5 sentences. Includes only reported facts and does not imply independent verification.'),
   "urgency": zod.enum(['low', 'medium', 'high']),
   "suggestedCategory": zod.enum(['speeding', 'pothole', 'unsafe_crossing', 'distracted_driving', 'unsafe_driving', 'streetlight', 'illegal_dumping', 'other']),
   "recommendedAction": zod.string().max(createTrafficReportResponseAnalysisOneRecommendedActionMax)

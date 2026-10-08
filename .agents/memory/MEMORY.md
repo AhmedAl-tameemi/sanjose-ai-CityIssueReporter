@@ -1,7 +1,7 @@
 - [Private evidence storage](private-evidence-storage.md) — private objects and scoped upload previews; saved attachments require resident ownership or authenticated staff access.
 - [Report history access](report-history-access.md) — browser-scoped resident history; City officials use one shared four-digit PIN; the accident map remains City-data-only.
 - [Public accident retention](public-accident-archive.md) — preserve saved City records during refreshes; source failures and rolling coverage must not erase stored history.
-- [Resident text translation](resident-text-translation.md) — preserve residents’ original text; use a user-supplied OpenAI secret for staff-facing English translations.
+- [Resident text translation](resident-text-translation.md) — preserve original text; use owner-provided OpenAI for English translations and factual 2–5 sentence report summaries.
 - [Public map services](public-map-services.md) — keep the prototype keyless; public OSM/Nominatim usage needs attribution, low request volume, and an upgrade path for scale.
 - [Dependency-free tests](dependency-free-tests.md) — use Node’s built-in runner for focused pure tests; add browser tooling only when rendered interaction coverage requires it.
 - [Workspace-scoped package installs](workspace-package-installs.md) — if the managed installer hits pnpm’s root guard, add dependencies only to their intended workspace.

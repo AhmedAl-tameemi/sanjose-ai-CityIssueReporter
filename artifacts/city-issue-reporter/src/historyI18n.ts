@@ -23,9 +23,9 @@ const en = {
   frequency: 'How often',
   contact: 'Contact details',
   evidence: 'Photo evidence',
-  analysis: 'AI analysis',
-  analysisPending: 'Analysis is still being prepared.',
-  analysisUnavailable: 'Analysis is not available for this report.',
+  analysis: 'AI report summary',
+  analysisPending: 'The AI summary is being prepared.',
+  analysisUnavailable: 'The AI summary is unavailable. The original report details are still saved.',
   urgency: 'Urgency',
   action: 'Recommended action',
   translation: 'English translation for staff',
@@ -59,9 +59,9 @@ const es: Dict = {
   frequency: 'Frecuencia',
   contact: 'Datos de contacto',
   evidence: 'Foto',
-  analysis: 'Análisis de IA',
-  analysisPending: 'El análisis aún se está preparando.',
-  analysisUnavailable: 'El análisis no está disponible.',
+  analysis: 'Resumen del reporte con IA',
+  analysisPending: 'El resumen con IA aún se está preparando.',
+  analysisUnavailable: 'El resumen con IA no está disponible. Los detalles originales del reporte siguen guardados.',
   urgency: 'Urgencia',
   action: 'Acción recomendada',
   photoFail: 'No se pudo cargar la foto.',
@@ -88,7 +88,7 @@ const zh: Dict = {
   status: '状态',
   statusSubmitted: '已接收并记录',
   original: '报告内容',
-  analysis: 'AI 分析',
+  analysis: 'AI 报告摘要',
   count: '{n} 份报告',
 };
 
@@ -111,7 +111,7 @@ const ar: Dict = {
   location: 'الموقع',
   status: 'الحالة',
   statusSubmitted: 'تم الاستلام والتسجيل',
-  analysis: 'تحليل الذكاء الاصطناعي',
+  analysis: 'ملخص البلاغ بالذكاء الاصطناعي',
   count: '{n} بلاغات',
 };
 

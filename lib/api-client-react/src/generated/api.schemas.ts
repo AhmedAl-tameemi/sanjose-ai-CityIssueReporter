@@ -281,7 +281,10 @@ export const TrafficReportAnalysisSuggestedCategory = {
 } as const;
 
 export interface TrafficReportAnalysis {
-  /** @maxLength 500 */
+  /**
+     * A concise English AI summary of the submitted report in 2 to 5 sentences. Includes only reported facts and does not imply independent verification.
+     * @maxLength 1200
+     */
   summary: string;
   urgency: TrafficReportAnalysisUrgency;
   suggestedCategory: TrafficReportAnalysisSuggestedCategory;

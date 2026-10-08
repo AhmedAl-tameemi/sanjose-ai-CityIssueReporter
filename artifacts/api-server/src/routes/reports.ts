@@ -181,7 +181,7 @@ router.post("/reports", async (req, res): Promise<void> => {
     let analysis: TrafficReportRecord["analysis"] = null;
     let analysisStatus: TrafficReportRecord["analysisStatus"] = "unavailable";
     try {
-      analysis = await generateReportAnalysis(originalReport);
+      analysis = await generateReportAnalysis(originalReport, evidenceItems);
       analysisStatus = "complete";
     } catch {
       req.log.warn({ reportId: created.id }, "AI analysis unavailable; original report is saved");

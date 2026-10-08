@@ -115,10 +115,10 @@ export default function CityOfficialReport({
       </section>
 
       <section className="city-report-section city-report-triage">
-        <h2>Automated triage · unverified suggestion</h2>
-        {report.analysis ? (
+        <h2>AI summary and triage · unverified suggestion</h2>
+        {report.analysis && report.analysisStatus === 'complete' ? (
           <>
-            <p><strong>Summary:</strong> {report.analysis.summary}</p>
+            <p className="city-report-ai-summary"><strong>AI report summary:</strong> {report.analysis.summary}</p>
             <p><strong>Suggested urgency:</strong> {report.analysis.urgency}</p>
             <p><strong>Suggested category:</strong> {report.analysis.suggestedCategory.replaceAll('_', ' ')}</p>
             <p><strong>Suggested next step:</strong> {report.analysis.recommendedAction}</p>
@@ -129,8 +129,8 @@ export default function CityOfficialReport({
         ) : (
           <p>
             {report.analysisStatus === 'pending'
-              ? 'Automated triage is still being prepared.'
-              : 'Automated triage is unavailable for this report.'}
+              ? 'The AI summary and triage suggestions are still being prepared.'
+              : 'The AI summary is unavailable. The original report details remain saved.'}
           </p>
         )}
       </section>

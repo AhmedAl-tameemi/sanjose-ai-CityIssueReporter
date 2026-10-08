@@ -765,7 +765,8 @@ components:
       properties:
         summary:
           type: string
-          maxLength: 500
+          description: A concise English AI summary of the submitted report in 2 to 5 sentences. Includes only reported facts and does not imply independent verification.
+          maxLength: 1200
         urgency:
           type: string
           enum: [low, medium, high]

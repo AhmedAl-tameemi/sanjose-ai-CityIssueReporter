@@ -302,9 +302,9 @@ export default function ReportHistoryPage() {
                      <PhotoEvidence report={r} label={t('evidenceLabel')} fail={t('evidenceLoadError')} staffView={staffView} />
                     <div className="history-analysis">
                       <span className="history-label">{h('analysis')}</span>
-                      {r.analysis ? (
+                      {r.analysis && r.analysisStatus === 'complete' ? (
                         <div lang="en" dir="ltr" style={{ display: 'grid', gap: 8 }}>
-                          <p>{r.analysis.summary}</p>
+                          <p data-testid={`text-ai-summary-${r.id}`}>{r.analysis.summary}</p>
                           <p><span className="history-label">{historyText('en', 'urgency')} </span><span className={`urgency ${r.analysis.urgency}`}>{r.analysis.urgency}</span></p>
                           <p><span className="history-label">{historyText('en', 'category')}: </span>{r.analysis.suggestedCategory.replaceAll('_', ' ')}</p>
                           <p><span className="history-label">{historyText('en', 'action')}: </span>{r.analysis.recommendedAction}</p>
