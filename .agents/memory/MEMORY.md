@@ -1,5 +1,5 @@
-- [Private evidence storage](private-evidence-storage.md) — private object storage and scoped upload previews; submitted attachments are visible in the public staff archive.
-- [Report history access](report-history-access.md) — browser-scoped resident history; the staff archive is deliberately public; the accident map remains City-data-only.
+- [Private evidence storage](private-evidence-storage.md) — private objects and scoped upload previews; saved attachments require resident ownership or authenticated staff access.
+- [Report history access](report-history-access.md) — browser-scoped resident history; City officials use one shared four-digit PIN; the accident map remains City-data-only.
 - [Public accident retention](public-accident-archive.md) — preserve saved City records during refreshes; source failures and rolling coverage must not erase stored history.
 - [Resident text translation](resident-text-translation.md) — preserve residents’ original text; use a user-supplied OpenAI secret for staff-facing English translations.
 - [Public map services](public-map-services.md) — keep the prototype keyless; public OSM/Nominatim usage needs attribution, low request volume, and an upgrade path for scale.

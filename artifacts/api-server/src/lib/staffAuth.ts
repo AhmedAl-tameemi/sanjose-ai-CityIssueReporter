@@ -82,23 +82,19 @@ export function isStaffAuthConfigured(): boolean {
   return Boolean(
     process.env.SESSION_SECRET &&
       process.env.SESSION_SECRET.length >= 32 &&
-      getStaffPinCredentials(),
+       getSharedStaffPin(),
   );
 }
 
 export function verifyStaffPin(pin: string): string | null {
   if (!isStaffAuthConfigured() || !/^[0-9]{4}$/.test(pin)) return null;
-  let matchedStaffId: string | null = null;
-  // Compare every configured PIN, rather than returning early for one staff ID.
-  for (const [staffId, expectedPin] of Object.entries(getStaffPinCredentials() ?? {})) {
-    if (safeEqual(pin, expectedPin)) matchedStaffId = staffId;
-  }
-  return matchedStaffId;
+  const expectedPin = getSharedStaffPin();
+  return expectedPin && safeEqual(pin, expectedPin) ? "city-officials" : null;
 }
 
 export function createStaffSession(staffId: string, role: StaffRole = "city-evidence-reviewer"): string {
-  const pin = getStaffPinCredentials()?.[staffId];
-  if (!pin) throw new Error("Cannot create a session for unconfigured staff.");
+  const pin = getSharedStaffPin();
+  if (!pin || staffId !== "city-officials") throw new Error("Cannot create an unconfigured staff session.");
   return createToken({
     aud: "city-staff-session",
     staffId,
@@ -117,13 +113,13 @@ export function getStaffSession(req: Request): StaffSession | null {
   const payload = readToken(token, "city-staff-session");
   if (
     !payload ||
-    typeof payload.staffId !== "string" ||
+    payload.staffId !== "city-officials" ||
     typeof payload.pinVersion !== "string" ||
     (payload.role !== "city-evidence-reviewer" && payload.role !== "city-admin")
   ) {
     return null;
   }
-  const pin = getStaffPinCredentials()?.[payload.staffId];
+  const pin = getSharedStaffPin();
   if (!pin || !safeEqual(payload.pinVersion, sign(`staff-pin:${payload.staffId}:${pin}`))) {
     return null;
   }
@@ -210,24 +206,11 @@ export function clearStaffSessionCookie(res: Response): void {
   );
 }
 
-function getStaffPinCredentials(): Record<string, string> | null {
-  try {
-    const credentials: unknown = JSON.parse(process.env.CITY_STAFF_PIN_CREDENTIALS ?? "");
-    if (!credentials || typeof credentials !== "object" || Array.isArray(credentials)) return null;
-    const entries = Object.entries(credentials);
-    if (!entries.length) return null;
-    const pins = new Set<string>();
-    for (const [staffId, pin] of entries) {
-      if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(staffId) ||
-          typeof pin !== "string" || !/^[0-9]{4}$/.test(pin) || pins.has(pin)) return null;
-      pins.add(pin);
-    }
-    return credentials as Record<string, string>;
-  } catch {
-    // Invalid or duplicated credentials disable staff access, never fall back
-    // to the former shared password or accept an ambiguous staff identity.
-    return null;
-  }
+function getSharedStaffPin(): string | null {
+  // Keep it a string so leading zeroes survive. Missing or malformed secrets
+  // disable access; there is deliberately no hardcoded/default PIN.
+  const pin = process.env.CITY_STAFF_PIN;
+  return typeof pin === "string" && /^[0-9]{4}$/.test(pin) ? pin : null;
 }
 
 function getCookieToken(req: Request): string | null {

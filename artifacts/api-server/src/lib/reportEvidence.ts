@@ -47,11 +47,11 @@ export async function verifyEvidenceMetadata(
 }
 
 export function canReadReportEvidence(
-  isPublicStaffView: boolean,
+  isAuthenticatedStaff: boolean,
   reportOwnerId: string,
   viewerOwnerId: string | null,
 ): boolean {
-  return isPublicStaffView || (viewerOwnerId !== null && reportOwnerId === viewerOwnerId);
+  return isAuthenticatedStaff || (viewerOwnerId !== null && reportOwnerId === viewerOwnerId);
 }
 
 export function canSubmitEvidence(

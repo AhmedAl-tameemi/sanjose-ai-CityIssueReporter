@@ -7,7 +7,7 @@ Resident evidence should remain in private managed object storage, with only a v
 
 **Why:** Browser storage disappears when residents change devices or clear site data, while storing media bytes in structured records creates unnecessary privacy and size risks.
 
-**How to apply:** Validate the declared content type, size, and image signature or media container at the server boundary. Resident upload previews use a signed, object-specific header capability; never accept the object path alone or put a preview capability in a URL. Submitted attachments may be served through a report-scoped public staff archive, as explicitly approved on 2026-10-08. That approval does not make raw storage paths or unsubmitted uploads public.
+**How to apply:** Validate the declared content type, size, and image signature or media container at the server boundary. Resident upload previews use a signed, object-specific header capability; never accept the object path alone or put a preview capability in a URL. Saved attachments require the submitting resident's browser identity or a valid shared-PIN staff session through a controlled report-scoped route. Raw storage paths and unsubmitted uploads are not public.
 
 Device recording is optional, resident-initiated evidence collection—not continuous accident detection. Residents review and explicitly attach a clip; recordings are not sent to text-analysis or translation services.
 

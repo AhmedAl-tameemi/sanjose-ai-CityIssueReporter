@@ -6,36 +6,38 @@ import { StaffLoginRateLimiter, staffClientKey } from "../src/lib/staffLoginRate
 // Synthetic fixtures, not credentials for the running application.
 process.env.SESSION_SECRET = "unit-test-signing-secret-not-for-production";
 const configure = () => {
-  process.env.CITY_STAFF_PIN_CREDENTIALS = JSON.stringify({ "staff-a": "0042", "staff-b": "9317" });
+  process.env.CITY_STAFF_PIN = "0042";
 };
 const request = (token) => ({ cookies: { city_staff_session: token }, header: () => undefined });
 
-test("four-digit PINs identify distinct staff, preserve leading zeroes, and need no email", () => {
+test("one shared four-digit PIN preserves leading zeroes and needs no email", () => {
   configure();
   assert.equal(isStaffAuthConfigured(), true);
-  assert.equal(verifyStaffPin("0042"), "staff-a");
-  assert.equal(verifyStaffPin("9317"), "staff-b");
-  for (const pin of ["42", "00042", " 0042", "0042 ", "abcd", "1111"]) {
+  assert.equal(verifyStaffPin("0042"), "city-officials");
+  for (const pin of ["42", "00042", " 0042", "0042 ", "abcd", "1111", "9317"]) {
     assert.equal(verifyStaffPin(pin), null);
   }
 });
 
-test("missing, invalid, and duplicate PIN configuration fails closed", () => {
-  for (const configuration of ["", "bad JSON", "[]", "{}", '{"staff-a":42}', '{"staff-a":"0042","staff-b":"0042"}']) {
-    process.env.CITY_STAFF_PIN_CREDENTIALS = configuration;
+test("missing or malformed shared PIN configuration fails closed", () => {
+  delete process.env.CITY_STAFF_PIN;
+  assert.equal(isStaffAuthConfigured(), false);
+  for (const configuration of ["", "bad JSON", "42", "00042", " 0042", "0042 ", '{"staff-a":"0042"}']) {
+    process.env.CITY_STAFF_PIN = configuration;
     assert.equal(isStaffAuthConfigured(), false);
     assert.equal(verifyStaffPin("0042"), null);
   }
 });
 
-test("sessions contain individual staff identity and expire when a PIN is rotated or removed", () => {
+test("sessions use a shared identity and are invalidated when the PIN is changed or removed", () => {
   configure();
-  const token = createStaffSession("staff-a");
-  assert.equal(getStaffSession(request(token))?.staffId, "staff-a");
+  const token = createStaffSession("city-officials");
+  assert.equal(getStaffSession(request(token))?.staffId, "city-officials");
+  assert.throws(() => createStaffSession("staff-a"));
   assert.equal(getStaffSession(request(`${token}tampered`)), null);
-  process.env.CITY_STAFF_PIN_CREDENTIALS = JSON.stringify({ "staff-a": "1122", "staff-b": "9317" });
+  process.env.CITY_STAFF_PIN = "1122";
   assert.equal(getStaffSession(request(token)), null);
-  process.env.CITY_STAFF_PIN_CREDENTIALS = JSON.stringify({ "staff-b": "9317" });
+  delete process.env.CITY_STAFF_PIN;
   assert.equal(getStaffSession(request(token)), null);
 });
 

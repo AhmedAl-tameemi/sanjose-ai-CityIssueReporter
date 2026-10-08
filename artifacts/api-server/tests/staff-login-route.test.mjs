@@ -21,6 +21,7 @@ test("durable staff PIN limits across processes, restarts, trusted proxies, and 
     stdin: {
       contents: `
         export { createStaffRouter } from "./src/routes/staff";
+        export { default as reportsRouter } from "./src/routes/reports";
         export { PostgresStaffAttemptStore } from "./src/lib/staffAttemptStore";
         export { StaffLoginRateLimiter, staffClientKey } from "./src/lib/staffLoginRateLimit";
         export { configureTrustedProxy } from "./src/lib/trustedProxy";
@@ -35,9 +36,9 @@ test("durable staff PIN limits across processes, restarts, trusted proxies, and 
   const databases = [];
   const servers = [];
   const children = [];
-  const credentials = JSON.stringify({ "staff-a": "0042", "staff-b": "9317" });
+  const sharedPin = "0042";
   process.env.SESSION_SECRET = "unit-test-signing-secret-not-for-production";
-  delete process.env.CITY_STAFF_PIN_CREDENTIALS;
+  delete process.env.CITY_STAFF_PIN;
 
   async function start(trusted, failing = false) {
     const database = new admin.constructor({
@@ -49,6 +50,7 @@ test("durable staff PIN limits across processes, restarts, trusted proxies, and 
     api.configureTrustedProxy(app, trusted);
     app.use(express.json(), cookieParser());
     app.use("/api", api.createStaffRouter(new api.StaffLoginRateLimiter(store)));
+    app.use("/api", api.reportsRouter);
     const server = app.listen(0, "127.0.0.1");
     servers.push(server);
     await once(server, "listening");
@@ -69,7 +71,7 @@ test("durable staff PIN limits across processes, restarts, trusted proxies, and 
       const server = app.listen(0, "127.0.0.1", () => process.send(server.address().port));
       process.on("SIGTERM", () => { server.closeAllConnections(); server.close(async () => { await database.end(); await api.pool.end(); process.exit(0); }); });
     `, bundle, schema, createRequire(import.meta.url).resolve("express")], {
-      env: { ...process.env, CITY_STAFF_PIN_CREDENTIALS: credentials },
+      env: { ...process.env, CITY_STAFF_PIN: sharedPin },
       stdio: ["ignore", "pipe", "pipe", "ipc"],
     });
     children.push(child);
@@ -97,7 +99,7 @@ test("durable staff PIN limits across processes, restarts, trusted proxies, and 
     )`);
     const base = await start("");
     assert.equal((await login(base, { pin: "0042" })).status, 503);
-    process.env.CITY_STAFF_PIN_CREDENTIALS = credentials;
+    process.env.CITY_STAFF_PIN = sharedPin;
     for (const body of [{ email: "fixture@example.invalid", password: "fixture" }, { pin: 42 }, { pin: "123" }, { pin: "12345" }]) {
       assert.equal((await login(base, body)).status, 400);
     }
@@ -106,14 +108,27 @@ test("durable staff PIN limits across processes, restarts, trusted proxies, and 
     assert.equal(denied.headers.get("set-cookie"), null);
     const signedIn = await login(base, { pin: "0042" });
     assert.equal(signedIn.status, 200);
-    assert.deepEqual(await signedIn.json(), { authenticated: true, staffId: "staff-a", role: "city-evidence-reviewer" });
+    assert.deepEqual(await signedIn.json(), { authenticated: true, staffId: "city-officials", role: "city-evidence-reviewer" });
     const setCookie = signedIn.headers.get("set-cookie");
     assert.match(setCookie, /HttpOnly; SameSite=Lax/);
     const cookie = setCookie.split(";")[0];
     const session = await fetch(`${base}/session`, { headers: { Cookie: cookie } });
     assert.equal(session.status, 200);
-    assert.equal((await session.json()).staffId, "staff-a");
-    assert.equal((await login(base, { pin: "9317" }).then((r) => r.json())).staffId, "staff-b");
+    assert.equal((await session.json()).staffId, "city-officials");
+    const reportsBase = base.replace(/\/staff$/, "");
+    assert.equal((await fetch(`${reportsBase}/reports?view=staff`)).status, 401);
+    assert.equal((await fetch(`${reportsBase}/reports?view=staff`, { headers: { Cookie: `${cookie}tampered` } })).status, 401);
+    const fullHistory = await fetch(`${reportsBase}/reports?view=staff`, { headers: { Cookie: cookie } });
+    assert.equal(fullHistory.status, 200);
+    assert.equal((await fullHistory.json()).viewer, "staff");
+    const personalHistory = await fetch(`${reportsBase}/reports?view=resident`, { headers: { Cookie: cookie } });
+    const personal = await personalHistory.json();
+    assert.equal(personal.viewer, "resident");
+    assert.equal(personal.reports.length, 0);
+    const evidenceUrl = `${reportsBase}/staff/reports/00000000-0000-4000-8000-000000000001/evidence/0`;
+    assert.equal((await fetch(evidenceUrl)).status, 401);
+    assert.equal((await fetch(evidenceUrl, { headers: { Cookie: cookie } })).status, 404);
+    assert.equal((await login(base, { pin: "0042" }).then((r) => r.json())).staffId, "city-officials");
     const logout = await fetch(`${base}/logout`, { method: "POST", headers: { Cookie: cookie } });
     assert.equal(logout.status, 204);
     assert.match(logout.headers.get("set-cookie"), /Max-Age=0/);

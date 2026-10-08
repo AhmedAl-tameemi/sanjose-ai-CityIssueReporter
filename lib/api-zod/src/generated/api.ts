@@ -170,8 +170,8 @@ export const TranslateReportResponse = zod.object({
 
 
 /**
- * The resident view returns only reports tied to the current browser session. The staff view is public and returns all submitted report details without sign-in.
- * @summary List resident history or the public City staff archive
+ * The resident view returns only reports tied to the current browser session. Requesting the staff view requires a valid shared-PIN staff session and returns all submissions.
+ * @summary List resident history or PIN-protected City staff reports
  */
 export const listTrafficReportsQueryViewDefault = `resident`;
 
@@ -248,7 +248,7 @@ export const ListTrafficReportsResponse = zod.object({
   "description": zod.string()
 }),zod.null()])
 })),
-  "viewer": zod.enum(['resident', 'staff']).describe('Display mode, not an authenticated staff identity.')
+  "viewer": zod.enum(['resident', 'staff']).describe('Resident owner-scoped mode or authenticated shared staff mode.')
 })
 
 
@@ -438,18 +438,55 @@ export const ReadTrafficReportEvidenceItemResponse = zod.unknown()
 
 
 /**
- * No PIN, staff session, or resident ownership is required. Only evidence attached to a saved report can be read through this route.
- * @summary Read submitted report evidence in the public City staff view
+ * A valid staff session is required. Only evidence attached to a saved report can be read through this route.
+ * @summary Read submitted report evidence after staff PIN sign-in
  */
-export const readPublicStaffReportEvidencePathEvidenceIndexMin = 0;
+export const readStaffReportEvidencePathEvidenceIndexMin = 0;
 
 
 
-export const ReadPublicStaffReportEvidenceParams = zod.object({
+export const ReadStaffReportEvidenceParams = zod.object({
   "reportId": zod.coerce.string().uuid(),
-  "evidenceIndex": zod.coerce.number().int().min(readPublicStaffReportEvidencePathEvidenceIndexMin)
+  "evidenceIndex": zod.coerce.number().int().min(readStaffReportEvidencePathEvidenceIndexMin)
 })
 
-export const ReadPublicStaffReportEvidenceResponse = zod.unknown()
+export const ReadStaffReportEvidenceResponse = zod.unknown()
+
+
+/**
+ * @summary Sign in using the shared four-digit City staff PIN
+ */
+export const staffLoginBodyPinMin = 4;
+export const staffLoginBodyPinMax = 4;
+
+
+export const staffLoginBodyPinRegExp = new RegExp('^[0-9]{4}$');
+
+
+export const StaffLoginBody = zod.object({
+  "pin": zod.string().min(staffLoginBodyPinMin).max(staffLoginBodyPinMax).regex(staffLoginBodyPinRegExp)
+})
+
+export const StaffLoginResponse = zod.object({
+  "authenticated": zod.boolean(),
+  "staffId": zod.string().optional().describe('Shared City officials identity, not an individual person.'),
+  "role": zod.enum(['city-evidence-reviewer', 'city-admin']).optional()
+})
+
+
+/**
+ * @summary Check shared City staff sign-in
+ */
+export const GetStaffSessionResponse = zod.object({
+  "authenticated": zod.boolean(),
+  "staffId": zod.string().optional().describe('Shared City officials identity, not an individual person.'),
+  "role": zod.enum(['city-evidence-reviewer', 'city-admin']).optional()
+})
+
+
+/**
+ * @summary Clear the current browser's staff session
+ */
+export const StaffLogoutResponse = zod.void()
 
 

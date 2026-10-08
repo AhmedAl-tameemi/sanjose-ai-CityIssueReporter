@@ -10,6 +10,6 @@ import type { TrafficReportHistoryViewer } from './trafficReportHistoryViewer';
 
 export interface TrafficReportHistory {
   reports: TrafficReport[];
-  /** Display mode, not an authenticated staff identity. */
+  /** Resident owner-scoped mode or authenticated shared staff mode. */
   viewer: TrafficReportHistoryViewer;
 }

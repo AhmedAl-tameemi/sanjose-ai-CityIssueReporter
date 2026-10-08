@@ -5,6 +5,30 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface StaffLoginInput {
+  /**
+     * @minLength 4
+     * @maxLength 4
+     * @pattern ^[0-9]{4}$
+     */
+  pin: string;
+}
+
+export type StaffSessionRole = typeof StaffSessionRole[keyof typeof StaffSessionRole];
+
+
+export const StaffSessionRole = {
+  'city-evidence-reviewer': 'city-evidence-reviewer',
+  'city-admin': 'city-admin',
+} as const;
+
+export interface StaffSession {
+  authenticated: boolean;
+  /** Shared City officials identity, not an individual person. */
+  staffId?: string;
+  role?: StaffSessionRole;
+}
+
 export type CityAccidentListSyncStatus = typeof CityAccidentListSyncStatus[keyof typeof CityAccidentListSyncStatus];
 
 
@@ -298,7 +322,7 @@ export interface TrafficReport {
 }
 
 /**
- * Display mode, not an authenticated staff identity.
+ * Resident owner-scoped mode or authenticated shared staff mode.
  */
 export type TrafficReportHistoryViewer = typeof TrafficReportHistoryViewer[keyof typeof TrafficReportHistoryViewer];
 
@@ -310,7 +334,7 @@ export const TrafficReportHistoryViewer = {
 
 export interface TrafficReportHistory {
   reports: TrafficReport[];
-  /** Display mode, not an authenticated staff identity. */
+  /** Resident owner-scoped mode or authenticated shared staff mode. */
   viewer: TrafficReportHistoryViewer;
 }
 

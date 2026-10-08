@@ -9,7 +9,7 @@ import {
 
 // A synthetic test fixture, never a real workspace credential.
 process.env.SESSION_SECRET = "unit-test-signing-secret-not-for-production";
-process.env.CITY_STAFF_PIN_CREDENTIALS = JSON.stringify({ "fixture-staff": "0042" });
+process.env.CITY_STAFF_PIN = "0042";
 
 function residentRequest(cookies = {}) {
   const headers = [];
@@ -50,10 +50,10 @@ test("resident report cookies cannot grant staff access", () => {
 });
 
 test("staff and resident token audiences remain isolated", () => {
-  const staff = createStaffSession("fixture-staff");
+  const staff = createStaffSession("city-officials");
   const request = { cookies: { city_staff_session: staff }, header: () => undefined };
   assert.equal(canStaffReadEvidence(getStaffSession(request)), true);
   const resident = residentRequest({ city_resident_owner: staff });
-  assert.notEqual(resident.ownerId, "fixture-staff");
+  assert.notEqual(resident.ownerId, "city-officials");
   assert.ok(resident.token);
 });

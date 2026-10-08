@@ -103,17 +103,39 @@ after(async () => {
 });
 
 async function openHistory(viewer) {
+  // Synthetic fixture PIN and session state, never production credentials.
+  let authenticated = viewer === "staff";
   const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
   await page.addInitScript(() => {
     window.print = () => { window.__printCalls = (window.__printCalls || 0) + 1; };
   });
   await page.route(/\/api\/reports(?:\?.*)?$/, (route) => {
-    const publicView = new URL(route.request().url()).searchParams.get("view") === "staff";
+    const staffView = new URL(route.request().url()).searchParams.get("view") === "staff";
+    if (staffView && !authenticated) return route.fulfill({
+      status: 401, contentType: "application/json",
+      body: JSON.stringify({ error: "Staff PIN sign-in is required." }),
+    });
     return route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify({ viewer: publicView ? "staff" : "resident", reports: publicView ? [fixtureReport, secondReport] : [fixtureReport] }),
+      body: JSON.stringify({ viewer: staffView ? "staff" : "resident", reports: staffView ? [fixtureReport, secondReport] : [fixtureReport] }),
     });
+  });
+  await page.route("**/api/staff/login", (route) => {
+    const body = route.request().postDataJSON();
+    if (body.pin !== "0042") return route.fulfill({
+      status: 401, contentType: "application/json", body: JSON.stringify({ error: "Incorrect staff PIN." }),
+    });
+    assert.deepEqual(body, { pin: "0042" });
+    authenticated = true;
+    return route.fulfill({
+      status: 200, contentType: "application/json",
+      body: JSON.stringify({ authenticated: true, staffId: "city-officials", role: "city-evidence-reviewer" }),
+    });
+  });
+  await page.route("**/api/staff/logout", (route) => {
+    authenticated = false;
+    return route.fulfill({ status: 204 });
   });
   await page.route(/\/api\/(?:staff\/)?reports\/[^/]+\/evidence\/\d+$/, (route) => route.fulfill({
     status: 200,
@@ -135,28 +157,43 @@ test("resident history does not offer city report compilation", async () => {
   }
 });
 
-test("the public staff view opens and reloads without PIN verification, then returns to scoped resident history", async () => {
+test("shared PIN login rejects wrong codes, preserves a leading zero, and clears staff reports on sign-out", async () => {
   const page = await openHistory("resident");
   const requests = [];
   page.on("request", (request) => requests.push(request.url()));
   try {
-    assert.equal(await page.getByTestId("input-staff-pin").count(), 0);
-    assert.equal(await page.getByTestId("button-staff-login").count(), 0);
     await page.getByTestId("toggle-staff-access").click();
-    await page.getByTestId("link-public-staff-view").click();
+    await page.getByTestId("link-staff-view").click();
+    const pin = page.getByTestId("input-staff-pin");
+    await pin.waitFor();
+    assert.equal(await page.locator("input[type=email]").count(), 0);
+    assert.equal(await page.getByTestId("card-report-fixture-other").count(), 0);
+    await pin.fill("1111");
+    await page.getByTestId("button-staff-login").click();
+    await page.getByTestId("text-staff-error").waitFor();
+    assert.match(await page.getByTestId("text-staff-error").innerText(), /Incorrect staff PIN/);
+    assert.equal(await page.getByTestId("card-report-fixture-other").count(), 0);
+    await pin.fill("0042");
+    await page.getByTestId("button-staff-login").click();
     await page.getByTestId("card-report-fixture-other").waitFor();
-    assert.match(await page.getByTestId("text-history-privacy").innerText(), /Public access/);
+    assert.match(await page.getByTestId("text-history-privacy").innerText(), /PIN-protected access/);
     assert.ok(requests.some((url) => url.includes("/api/reports?view=staff")));
     const evidenceImage = page.getByTestId("card-report-fixture-main").getByTestId("history-evidence-0").locator("img");
     assert.equal(await evidenceImage.getAttribute("src"), "/api/staff/reports/fixture-main/evidence/0");
     await page.reload();
     await page.getByTestId("card-report-fixture-other").waitFor();
     assert.equal(await page.getByTestId("input-staff-pin").count(), 0);
-    await page.getByTestId("link-resident-history").click();
+    await page.getByTestId("button-staff-logout").click();
+    await page.waitForURL(`${baseUrl}/history`);
     await page.getByTestId("card-report-fixture-main").waitFor();
     assert.equal(await page.getByTestId("card-report-fixture-other").count(), 0);
     assert.equal(await page.locator('[data-testid^="button-print-report-"]').count(), 0);
-    assert.equal(requests.some((url) => /\/api\/staff\/(login|session|logout)/.test(url)), false);
+    assert.ok(requests.some((url) => url.endsWith("/api/staff/login")));
+    assert.ok(requests.some((url) => url.endsWith("/api/staff/logout")));
+    await page.goto(`${baseUrl}/history?view=staff`);
+    await page.getByTestId("input-staff-pin").waitFor();
+    assert.equal(await page.getByTestId("card-report-fixture-other").count(), 0);
+    assert.equal(await page.locator('[data-testid^="button-print-report-"]').count(), 0);
   } finally {
     await page.close();
   }
@@ -177,7 +214,7 @@ test("staff printout compiles only the selected report and labels sources correc
     for (const expected of [
       "TS-TEST-001", "Test intersection", "Test street address", "2026-10-07", "8:30 AM",
       "37.338200, -121.886300", "Test Resident", "resident@example.invalid", "Not provided",
-      "test-photo.png", "A translated test statement.", "unverified suggestion", "PUBLIC CITY STAFF VIEW",
+      "test-photo.png", "A translated test statement.", "unverified suggestion", "CONFIDENTIAL",
     ]) assert.ok(text.includes(expected), `Missing report detail: ${expected}`);
     assert.equal(text.includes("TS-TEST-002"), false);
     assert.equal(await document.getAttribute("lang"), "en");

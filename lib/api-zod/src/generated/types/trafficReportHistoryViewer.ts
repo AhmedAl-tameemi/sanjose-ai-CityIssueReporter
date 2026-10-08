@@ -7,7 +7,7 @@
  */
 
 /**
- * Display mode, not an authenticated staff identity.
+ * Resident owner-scoped mode or authenticated shared staff mode.
  */
 export type TrafficReportHistoryViewer = typeof TrafficReportHistoryViewer[keyof typeof TrafficReportHistoryViewer];
 

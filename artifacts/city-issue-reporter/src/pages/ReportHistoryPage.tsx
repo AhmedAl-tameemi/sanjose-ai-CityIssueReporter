@@ -1,10 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link, useSearch } from 'wouter';
-import { Eye, MapPin, Printer, RotateCcw } from 'lucide-react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { Link, useLocation, useSearch } from 'wouter';
+import { Lock, MapPin, Printer, RotateCcw } from 'lucide-react';
 import {
+  getListTrafficReportsQueryKey,
   useListTrafficReports,
+  useStaffLogin,
+  useStaffLogout,
 } from '@workspace/api-client-react';
-import type { TrafficReport } from '@workspace/api-client-react';
+import type { ListTrafficReportsParams, TrafficReport } from '@workspace/api-client-react';
 import { frequencyTranslationKeys, issueTranslationKeys, useLanguage } from '../i18n';
 import { historyText, type HistoryKey } from '../historyI18n';
 import '../history.css';
@@ -18,13 +22,13 @@ function errorMessage(err: unknown): string {
   return e?.data?.error || e?.message || 'Request failed. Please try again.';
 }
 
-function HistoryEvidenceItem({ report, evidence, index, label, fail, publicStaffView }: {
+function HistoryEvidenceItem({ report, evidence, index, label, fail, staffView }: {
   report: TrafficReport;
   evidence: TrafficReport['evidence'][number];
   index: number;
   label: string;
   fail: string;
-  publicStaffView: boolean;
+  staffView: boolean;
 }) {
   const [broken, setBroken] = useState(false);
   return (
@@ -33,7 +37,7 @@ function HistoryEvidenceItem({ report, evidence, index, label, fail, publicStaff
         <p className="history-text" role="alert">{fail}</p>
       ) : (
         <EvidencePlayer
-          src={`/api/${publicStaffView ? 'staff/' : ''}reports/${encodeURIComponent(report.id)}/evidence/${index}`}
+          src={`/api/${staffView ? 'staff/' : ''}reports/${encodeURIComponent(report.id)}/evidence/${index}`}
           type={evidence.type}
           name={`${label}: ${evidence.name}`}
           onError={() => setBroken(true)}
@@ -44,7 +48,7 @@ function HistoryEvidenceItem({ report, evidence, index, label, fail, publicStaff
   );
 }
 
-function PhotoEvidence({ report, label, fail, publicStaffView }: { report: TrafficReport; label: string; fail: string; publicStaffView: boolean }) {
+function PhotoEvidence({ report, label, fail, staffView }: { report: TrafficReport; label: string; fail: string; staffView: boolean }) {
   if (!report.evidence.length) return null;
   return (
     <div className="history-photo">
@@ -58,7 +62,7 @@ function PhotoEvidence({ report, label, fail, publicStaffView }: { report: Traff
             index={index}
             label={label}
             fail={fail}
-            publicStaffView={publicStaffView}
+            staffView={staffView}
           />
         ))}
       </div>
@@ -69,18 +73,33 @@ function PhotoEvidence({ report, label, fail, publicStaffView }: { report: Traff
 export default function ReportHistoryPage() {
   const { language, direction, t } = useLanguage();
   const h = (k: HistoryKey, n?: number) => historyText(language, k, n);
-  const publicStaffView = new URLSearchParams(useSearch()).get('view') === 'staff';
-  const query = useListTrafficReports({ view: publicStaffView ? 'staff' : 'resident' });
+  const staffView = new URLSearchParams(useSearch()).get('view') === 'staff';
+  const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
+  const params: ListTrafficReportsParams = { view: staffView ? 'staff' : 'resident' };
+  const query = useListTrafficReports(
+    params,
+    { query: { queryKey: getListTrafficReportsQueryKey(params), retry: false, staleTime: 0, refetchOnMount: 'always' } },
+  );
+  const login = useStaffLogin();
+  const logout = useStaffLogout();
+  const [pin, setPin] = useState('');
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const [printingReportId, setPrintingReportId] = useState<string | null>(null);
   const [printGeneratedAt, setPrintGeneratedAt] = useState<string | null>(null);
 
-  const data = query.data;
+  // Hide cached staff records during an access check, after denial or expiry,
+  // and while signing out.
+  const data = busy || query.isError || (staffView && query.isFetching) ? undefined : query.data;
+  const needsLogin = staffView && query.isError && (query.error as { status?: number })?.status === 401;
+  const staffAuthenticated = staffView && data?.viewer === 'staff';
   useEffect(() => {
     const previousTitle = document.title;
-    document.title = publicStaffView ? 'Public City Staff Reports | TrafficSignal' : 'Report History | TrafficSignal';
+    document.title = staffView ? 'City Staff Reports | TrafficSignal' : 'Report History | TrafficSignal';
     return () => { document.title = previousTitle; };
-  }, [publicStaffView]);
-  const viewer = publicStaffView ? 'staff' : 'resident';
+  }, [staffView]);
+  const viewer = staffView ? 'staff' : 'resident';
   const reports = useMemo(
     () => [...(data?.reports ?? [])].sort((a, b) => Date.parse(b.submittedAt) - Date.parse(a.submittedAt)),
     [data],
@@ -113,7 +132,44 @@ export default function ReportHistoryPage() {
     setPrintingReportId(reportId);
   };
 
-  const loading = query.isLoading || (query.isFetching && !data);
+  const resetAndRefetch = async () => {
+    const queryKey = getListTrafficReportsQueryKey();
+    await queryClient.cancelQueries({ queryKey });
+    await queryClient.resetQueries({ queryKey });
+  };
+
+  const onLogin = async (event: FormEvent) => {
+    event.preventDefault();
+    setAuthError(null);
+    setBusy(true);
+    try {
+      await login.mutateAsync({ data: { pin } });
+      setPin('');
+      await resetAndRefetch();
+    } catch (error) {
+      setAuthError(errorMessage(error));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onLogout = async () => {
+    setBusy(true);
+    setAuthError(null);
+    setPrintingReportId(null);
+    setPrintGeneratedAt(null);
+    try {
+      await logout.mutateAsync();
+      await resetAndRefetch();
+      setLocation('/history');
+    } catch (error) {
+      setAuthError(errorMessage(error));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const loading = busy || query.isLoading || (query.isFetching && !data);
 
   return (
     <div className="app-shell" dir={direction} lang={language}>
@@ -130,19 +186,19 @@ export default function ReportHistoryPage() {
       <main className="page-wrap history-page">
         <section className="history-hero">
           <span className="eyebrow">TrafficSignal</span>
-           <h1>{viewer === 'staff' ? 'Public City staff reports' : h('title')}</h1>
-           <p>{viewer === 'staff' ? 'Reports from all residents, newest first. No sign-in is required.' : h('intro')}</p>
+            <h1>{viewer === 'staff' ? 'City staff reports' : h('title')}</h1>
+            <p>{viewer === 'staff' ? (staffAuthenticated ? 'Reports from all residents, newest first.' : 'Enter the shared City staff PIN to view reports from all residents.') : h('intro')}</p>
           <div className="history-privacy" data-testid="text-history-privacy">
-             <Eye size={18} aria-hidden="true" />
+              <Lock size={18} aria-hidden="true" />
             {viewer === 'staff'
-               ? <div lang="en" dir="ltr"><strong>Public access</strong>Anyone with app access can view all submitted reports, including contact details, exact locations, and attachments.</div>
+                ? <div lang="en" dir="ltr"><strong>PIN-protected access</strong>Full resident reports, contact details, locations, and attachments require City staff PIN sign-in.</div>
               : <div><strong>{h('privateTitle')}</strong>{h('privateText')}</div>}
           </div>
         </section>
 
         <div className="history-bar">
           <span className={`history-badge ${viewer}`} data-testid="status-history-viewer">
-            {viewer === 'staff' ? <span lang="en" dir="ltr">{historyText('en', 'staffBadge')}</span> : h('residentBadge')}
+             {viewer === 'staff' ? <span lang="en" dir="ltr">{staffAuthenticated ? historyText('en', 'staffBadge') : 'City staff PIN required'}</span> : h('residentBadge')}
           </span>
           {data && <span className="hint" data-testid="text-history-count">{h('count', reports.length)}</span>}
         </div>
@@ -150,21 +206,39 @@ export default function ReportHistoryPage() {
         <details className="history-staff" open={viewer === 'staff' ? true : undefined} lang="en" dir="ltr">
           <summary id="staff-h" data-testid="toggle-staff-access">{historyText('en', 'staffTitle')}</summary>
           {viewer === 'staff' ? (
-             <Link className="button button-secondary" href="/history" data-testid="link-resident-history">
-               Return to my report history
-             </Link>
+            <>
+              {staffAuthenticated && (
+                <button type="button" className="button button-secondary" onClick={onLogout} disabled={busy} data-testid="button-staff-logout">Sign out of staff view</button>
+              )}
+              {needsLogin && (
+                <form onSubmit={onLogin}>
+                  <label>4-digit shared staff PIN
+                    <input type="password" required inputMode="numeric" pattern="[0-9]{4}" maxLength={4} autoComplete="current-password" value={pin} onChange={(event) => setPin(event.target.value.replace(/[^0-9]/g, '').slice(0, 4))} data-testid="input-staff-pin" aria-describedby="staff-pin-hint" disabled={busy} />
+                    <span className="hint" id="staff-pin-hint">Shared by City officials. No email is needed.</span>
+                  </label>
+                  <button type="submit" className="button button-primary" disabled={busy || pin.length !== 4} data-testid="button-staff-login">{busy ? 'Signing in…' : 'Staff sign in'}</button>
+                </form>
+              )}
+              <Link className="button button-secondary" href="/history" data-testid="link-resident-history">Return to my report history</Link>
+            </>
           ) : (
              <div>
-               <p>All submitted reports and attachments are publicly available in this view.</p>
-               <Link className="button button-secondary" href="/history?view=staff" data-testid="link-public-staff-view">
-                 Open public City staff view
+                <p>City officials can use the shared four-digit PIN to view all submitted reports and attachments.</p>
+                <Link className="button button-secondary" href="/history?view=staff" data-testid="link-staff-view">
+                  Open City staff view
                </Link>
              </div>
           )}
+          {authError && <p className="history-error" role="alert" data-testid="text-staff-error">{authError}</p>}
         </details>
 
-        {loading ? (
-           <div className="history-list" role="status" aria-label={publicStaffView ? 'Loading all reports' : h('loading')} data-testid="state-history-loading">
+        {needsLogin ? (
+          <div className="history-state" data-testid="state-staff-locked">
+            <h2>Staff PIN required</h2>
+            <p>Enter the shared PIN above to access all resident reports.</p>
+          </div>
+        ) : loading ? (
+            <div className="history-list" role="status" aria-label={staffView ? 'Loading all reports' : h('loading')} data-testid="state-history-loading">
             <div className="history-skel" /><div className="history-skel" />
           </div>
         ) : query.isError ? (
@@ -177,8 +251,8 @@ export default function ReportHistoryPage() {
           </div>
         ) : reports.length === 0 ? (
           <div className="history-state" data-testid="state-history-empty">
-             <h2>{publicStaffView ? 'No reports have been submitted yet' : h('emptyTitle')}</h2>
-             <p>{publicStaffView ? 'Submitted reports will appear here with their report numbers.' : h('emptyText')}</p>
+              <h2>{staffView ? 'No reports have been submitted yet' : h('emptyTitle')}</h2>
+              <p>{staffView ? 'Submitted reports will appear here with their report numbers.' : h('emptyText')}</p>
             <Link className="button button-primary" href="/?view=report" data-testid="link-empty-report">{h('newReport')}</Link>
           </div>
         ) : (
@@ -225,7 +299,7 @@ export default function ReportHistoryPage() {
                         <p className="history-text" dir="auto">{contact}</p>
                       </div>
                     )}
-                     <PhotoEvidence report={r} label={t('evidenceLabel')} fail={t('evidenceLoadError')} publicStaffView={publicStaffView} />
+                     <PhotoEvidence report={r} label={t('evidenceLabel')} fail={t('evidenceLoadError')} staffView={staffView} />
                     <div className="history-analysis">
                       <span className="history-label">{h('analysis')}</span>
                       {r.analysis ? (
