@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link } from 'wouter';
-import { Lock, MapPin, RotateCcw } from 'lucide-react';
+import { Lock, MapPin, Printer, RotateCcw } from 'lucide-react';
 import {
   getListTrafficReportsQueryKey,
   useListTrafficReports,
@@ -15,6 +15,7 @@ import '../history.css';
 import AppNavigation from '../components/AppNavigation';
 import LanguageControl from '../components/LanguageControl';
 import EvidencePlayer from '../components/EvidencePlayer';
+import CityOfficialReport from '../components/CityOfficialReport';
 
 function errorMessage(err: unknown): string {
   const e = err as { data?: { error?: string }; message?: string } | null;
@@ -77,6 +78,8 @@ export default function ReportHistoryPage() {
   const [pin, setPin] = useState('');
   const [authError, setAuthError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [printingReportId, setPrintingReportId] = useState<string | null>(null);
+  const [printGeneratedAt, setPrintGeneratedAt] = useState<string | null>(null);
 
   const data = busy ? undefined : query.data;
   useEffect(() => {
@@ -133,6 +136,28 @@ export default function ReportHistoryPage() {
   const fmt = (iso: string) => {
     const d = new Date(iso);
     return Number.isNaN(d.getTime()) ? iso : d.toLocaleString(language, { dateStyle: 'medium', timeStyle: 'short' });
+  };
+
+  useEffect(() => {
+    if (!printingReportId) return;
+    document.body.classList.add('printing-city-report');
+    const clearPrintMode = () => {
+      document.body.classList.remove('printing-city-report');
+      setPrintingReportId(null);
+      setPrintGeneratedAt(null);
+    };
+    const frame = window.requestAnimationFrame(() => window.print());
+    window.addEventListener('afterprint', clearPrintMode);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener('afterprint', clearPrintMode);
+      document.body.classList.remove('printing-city-report');
+    };
+  }, [printingReportId]);
+
+  const printCityReport = (reportId: string) => {
+    setPrintGeneratedAt(new Date().toISOString());
+    setPrintingReportId(reportId);
   };
 
   const loading = busy || query.isLoading || (query.isFetching && !data);
@@ -213,11 +238,25 @@ export default function ReportHistoryPage() {
               const o = r.originalReport;
               const contact = [o.name, o.email, o.phone].filter(Boolean).join(' · ');
               return (
-                <li key={r.id} className="history-card" data-testid={`card-report-${r.id}`}>
+                <li key={r.id} className={`history-card${printingReportId === r.id ? ' history-print-target' : ''}`} data-testid={`card-report-${r.id}`}>
                   <div className="history-card-head">
                     <span className="history-number" data-testid={`text-number-${r.id}`}>{r.reportNumber}</span>
                     <time className="history-time" dateTime={r.submittedAt}>{fmt(r.submittedAt)}</time>
+                    {viewer === 'staff' && (
+                      <button
+                        type="button"
+                        className="button button-secondary history-print-button"
+                        onClick={() => printCityReport(r.id)}
+                        data-testid={`button-print-report-${r.id}`}
+                      >
+                        <Printer size={15} aria-hidden="true" />
+                        Print city report / Save as PDF
+                      </button>
+                    )}
                   </div>
+                  {viewer === 'staff' && printGeneratedAt && printingReportId === r.id && (
+                    <CityOfficialReport report={r} generatedAt={printGeneratedAt} />
+                  )}
                   <div className="history-card-body">
                     <dl className="history-meta">
                       <div><dt>{h('category')}</dt><dd>{t(issueTranslationKeys[o.issueType])}</dd></div>
