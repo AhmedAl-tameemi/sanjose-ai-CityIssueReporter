@@ -36,7 +36,10 @@ function bboxOf(map: L.Map) {
   return `${r(b.getWest())},${r(b.getSouth())},${r(b.getEast())},${r(b.getNorth())}`;
 }
 
-export default function IncidentMapPage() {
+export default function IncidentMapPage({ accidentType, onAccidentTypeChange }: {
+  accidentType: string;
+  onAccidentTypeChange: (value: string) => void;
+}) {
   const { direction, language, t } = useLanguage();
   const [bbox, setBbox] = useState(INITIAL_BBOX);
   const [year, setYear] = useState('all');
@@ -45,6 +48,7 @@ export default function IncidentMapPage() {
   const [shown, setShown] = useState(PAGE);
   const [tileErrors, setTileErrors] = useState(0);
   const [knownYears, setKnownYears] = useState<string[]>([]);
+  const [knownTypes, setKnownTypes] = useState<string[]>([]);
 
   const mapEl = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -55,7 +59,7 @@ export default function IncidentMapPage() {
   const selectRef = useRef(setSelectedId);
   selectRef.current = setSelectedId;
 
-  const params: ListCityIncidentsParams = { bbox, year, severity };
+  const params: ListCityIncidentsParams = { bbox, year, severity, accidentType: accidentType || 'all' };
   const query = useListCityIncidents(params, {
     query: {
       queryKey: getListCityIncidentsQueryKey(params),
@@ -77,6 +81,7 @@ export default function IncidentMapPage() {
 
   useEffect(() => {
     if (data?.availableYears) setKnownYears(data.availableYears);
+    if (data?.availableTypes) setKnownTypes(data.availableTypes);
   }, [data]);
 
   useEffect(() => {
@@ -169,6 +174,13 @@ export default function IncidentMapPage() {
           </p>
 
           <div className="im-filters">
+            <label>Accident type
+              <select value={accidentType} onChange={(e) => { onAccidentTypeChange(e.target.value); setShown(PAGE); setSelectedId(null); }} data-testid="select-incident-type">
+                <option value="">All types</option>
+                {knownTypes.map((type) => <option key={type} value={type}>{type}</option>)}
+                {accidentType && !knownTypes.includes(accidentType) && <option value={accidentType}>{accidentType}</option>}
+              </select>
+            </label>
             <label>Year
               <select value={year} onChange={(e) => { setYear(e.target.value); setShown(PAGE); setSelectedId(null); }} data-testid="select-incident-year">
                 <option value="all">All years</option>
@@ -189,7 +201,7 @@ export default function IncidentMapPage() {
 
           {data?.truncated && (
             <p className="im-notice" role="status" data-testid="notice-incident-truncated">
-              Showing the latest {data.limit.toLocaleString('en-US')} of {data.totalMatched.toLocaleString('en-US')} matching collisions in this area. Not every record is drawn. Zoom in or filter by year or severity to see more.
+              Showing the latest {data.limit.toLocaleString('en-US')} of {data.totalMatched.toLocaleString('en-US')} matching collisions in this area. Not every record is drawn. Zoom in or filter by accident type, year, or severity to see more.
             </p>
           )}
 

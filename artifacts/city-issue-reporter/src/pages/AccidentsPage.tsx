@@ -20,11 +20,13 @@ const fmt = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles', 
 const fmtDate = (iso: string | null) => (iso ? fmt.format(new Date(iso)) : 'Date not published');
 const num = (n: number) => n.toLocaleString('en-US');
 
-export default function AccidentsPage() {
+export default function AccidentsPage({ accidentType, onAccidentTypeChange }: {
+  accidentType: string;
+  onAccidentTypeChange: (value: string) => void;
+}) {
   const { direction, language, t } = useLanguage();
   const [sort, setSort] = useState<'type' | 'date'>('type');
   const [order, setOrder] = useState<'asc' | 'desc'>('asc');
-  const [accidentType, setAccidentType] = useState('');
   const [year, setYear] = useState('all');
   const [pageSize, setPageSize] = useState(25);
   const [page, setPage] = useState(1);
@@ -104,7 +106,7 @@ export default function AccidentsPage() {
               </select>
             </label>
             <label>Accident type
-              <select value={accidentType} onChange={(e) => change(() => setAccidentType(e.target.value))} data-testid="select-accident-type">
+              <select value={accidentType} onChange={(e) => change(() => onAccidentTypeChange(e.target.value))} data-testid="select-accident-type">
                 <option value="">All types</option>
                 {types.map((x) => <option key={x} value={x}>{x}</option>)}
               </select>

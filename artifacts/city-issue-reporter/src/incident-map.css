@@ -4,7 +4,7 @@
 .im-notice { margin: 0 0 16px; padding: 12px 14px; border: 1px solid hsl(var(--border)); border-radius: 10px; background: hsl(var(--surface-lemon)); font-size: 12px; line-height: 1.6; }
 .im-filters { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; align-items: end; }
 .im-filters label { display: grid; gap: 4px; font-size: 11px; font-weight: 700; color: hsl(var(--muted-foreground)); }
-.im-filters select { min-height: 40px; padding: 0 10px; border: 1px solid hsl(var(--border)); border-radius: 9px; background: hsl(var(--card)); color: hsl(var(--foreground)); font: inherit; font-size: 13px; }
+.im-filters select { min-height: 40px; max-width:100%; padding: 0 10px; border: 1px solid hsl(var(--border)); border-radius: 9px; background: hsl(var(--card)); color: hsl(var(--foreground)); font: inherit; font-size: 13px; }
 .im-layout { display: grid; grid-template-columns: minmax(0,1.6fr) minmax(280px,.8fr); gap: 16px; }
 .im-map-wrap { position: relative; z-index: 0; isolation: isolate; border: 1px solid hsl(var(--border)); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow-soft); background: hsl(var(--surface-mint)); }
 .im-map { height: min(66vh, 600px); min-height: 380px; width: 100%; }
@@ -32,4 +32,5 @@
 .sr-only-im { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 @keyframes im-pulse { 50% { opacity: .5; } }
 @media (max-width: 850px) { .im-layout { grid-template-columns: minmax(0,1fr); } .im-map { height: 55vh; min-height: 320px; } }
+@media (max-width: 600px) { .im-filters label { flex: 1 1 140px; min-width: 0; } .im-filters select { width:100%; } }
 @media (prefers-reduced-motion: reduce) { .im-page, .im-skel { animation: none; } }

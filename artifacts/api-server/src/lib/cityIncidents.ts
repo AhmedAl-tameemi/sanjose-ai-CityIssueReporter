@@ -122,12 +122,12 @@ async function getAccidentTypes(): Promise<string[]> {
     returnDistinctValues: "true", orderByFields: "COLLISIONTYPE ASC",
   }).then((data) => {
     if (!Array.isArray(data.features)) throw new Error("City collision type metadata was malformed.");
-    const types = [...new Set(data.features
+    const sourceTypes = data.features
       .map((feature) => feature.attributes?.COLLISIONTYPE)
       .filter((value): value is string => typeof value === "string")
       .map((value) => value.trim().slice(0, 150))
-      .filter(Boolean))];
-    types.push("Not specified");
+      .filter(Boolean);
+    const types = [...new Set([...sourceTypes, "Not specified"])];
     types.sort((a, b) => a.localeCompare(b, "en"));
     typesCache = { data: types, expires: Date.now() + 60 * 60_000 };
     return types;
@@ -149,7 +149,7 @@ export function buildIncidentWhere(
   const clauses = ["1=1"];
   if (filters.year !== "all") clauses.push(`YEAR = '${filters.year}'`);
   if (severityWhere) clauses.push(`(${severityWhere})`);
-  if (filters.accidentType !== "all") {
+  if (filters.accidentType && filters.accidentType !== "all") {
     if (filters.accidentType.length > 150 || /[\u0000-\u001f]/.test(filters.accidentType)) {
       throw new Error("Invalid map accident type.");
     }
