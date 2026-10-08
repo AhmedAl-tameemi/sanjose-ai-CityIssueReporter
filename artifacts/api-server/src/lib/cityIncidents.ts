@@ -11,6 +11,7 @@ export type IncidentFilters = {
   bbox: string;
   year: string;
   severity: "all" | Exclude<IncidentSeverity, "unknown">;
+  accidentType: string;
 };
 
 type Feature = { attributes?: Record<string, unknown>; geometry?: { x?: unknown; y?: unknown } };
@@ -32,6 +33,7 @@ type MapResult = {
   truncated: boolean;
   unmappedCount: number;
   availableYears: string[];
+  availableTypes: string[];
   fetchedAt: string;
   sourceName: string;
   sourceUrl: string;
@@ -110,13 +112,65 @@ async function getYears(): Promise<string[]> {
   return yearsPending;
 }
 
+let typesCache: { data: string[]; expires: number } | undefined;
+let typesPending: Promise<string[]> | undefined;
+async function getAccidentTypes(): Promise<string[]> {
+  if (typesCache && typesCache.expires > Date.now()) return typesCache.data;
+  if (typesPending) return typesPending;
+  typesPending = query({
+    where: "1=1", outFields: "COLLISIONTYPE", returnGeometry: "false",
+    returnDistinctValues: "true", orderByFields: "COLLISIONTYPE ASC",
+  }).then((data) => {
+    if (!Array.isArray(data.features)) throw new Error("City collision type metadata was malformed.");
+    const types = [...new Set(data.features
+      .map((feature) => feature.attributes?.COLLISIONTYPE)
+      .filter((value): value is string => typeof value === "string")
+      .map((value) => value.trim().slice(0, 150))
+      .filter(Boolean))];
+    types.push("Not specified");
+    types.sort((a, b) => a.localeCompare(b, "en"));
+    typesCache = { data: types, expires: Date.now() + 60 * 60_000 };
+    return types;
+  }).finally(() => { typesPending = undefined; });
+  return typesPending;
+}
+
+export function buildIncidentWhere(
+  filters: Pick<IncidentFilters, "year" | "severity" | "accidentType">,
+): string {
+  if (!/^(all|20\d{2})$/.test(filters.year)) throw new Error("Invalid map year.");
+  const severityWhere = {
+    all: "",
+    fatal: "FATALINJURIES > 0",
+    severe: "(FATALINJURIES = 0 OR FATALINJURIES IS NULL) AND SEVEREINJURIES > 0",
+    injury: "(FATALINJURIES = 0 OR FATALINJURIES IS NULL) AND (SEVEREINJURIES = 0 OR SEVEREINJURIES IS NULL) AND (MODERATEINJURIES > 0 OR MINORINJURIES > 0)",
+    none: "FATALINJURIES = 0 AND SEVEREINJURIES = 0 AND MODERATEINJURIES = 0 AND MINORINJURIES = 0",
+  }[filters.severity];
+  const clauses = ["1=1"];
+  if (filters.year !== "all") clauses.push(`YEAR = '${filters.year}'`);
+  if (severityWhere) clauses.push(`(${severityWhere})`);
+  if (filters.accidentType !== "all") {
+    if (filters.accidentType.length > 150 || /[\u0000-\u001f]/.test(filters.accidentType)) {
+      throw new Error("Invalid map accident type.");
+    }
+    if (filters.accidentType === "Not specified") {
+      clauses.push("(COLLISIONTYPE IS NULL OR COLLISIONTYPE = '' OR COLLISIONTYPE = 'Not specified')");
+    } else {
+      const escapedType = filters.accidentType.replaceAll("'", "''");
+      clauses.push(`COLLISIONTYPE = '${escapedType}'`);
+    }
+  }
+  return clauses.join(" AND ");
+}
+
 const cache = new Map<string, { data: MapResult; expires: number }>();
 const pending = new Map<string, Promise<MapResult>>();
 const failures = new Map<string, number>();
 
 export async function getCityIncidents(filters: IncidentFilters): Promise<MapResult> {
   const bounds = parseMapBounds(filters.bbox);
-  if (!bounds || !/^(all|20\d{2})$/.test(filters.year)) throw new Error("Invalid map filters.");
+  if (!bounds) throw new Error("Invalid map filters.");
+  const where = buildIncidentWhere(filters);
   const key = JSON.stringify(filters);
   const cached = cache.get(key);
   if (cached && cached.expires > Date.now()) return cached.data;
@@ -126,22 +180,12 @@ export async function getCityIncidents(filters: IncidentFilters): Promise<MapRes
   // A bounded cache and coalesced requests protect the public City service.
   const request = (async () => {
     const [west, south, east, north] = bounds;
-    const severityWhere = {
-      all: "",
-      fatal: "FATALINJURIES > 0",
-      severe: "(FATALINJURIES = 0 OR FATALINJURIES IS NULL) AND SEVEREINJURIES > 0",
-      injury: "(FATALINJURIES = 0 OR FATALINJURIES IS NULL) AND (SEVEREINJURIES = 0 OR SEVEREINJURIES IS NULL) AND (MODERATEINJURIES > 0 OR MINORINJURIES > 0)",
-      none: "FATALINJURIES = 0 AND SEVEREINJURIES = 0 AND MODERATEINJURIES = 0 AND MINORINJURIES = 0",
-    }[filters.severity];
-    const clauses = ["1=1"];
-    if (filters.year !== "all") clauses.push(`YEAR = '${filters.year}'`);
-    if (severityWhere) clauses.push(`(${severityWhere})`);
     const common = {
-      where: clauses.join(" AND "),
+      where,
       geometry: JSON.stringify({ xmin: west, ymin: south, xmax: east, ymax: north, spatialReference: { wkid: 4326 } }),
       geometryType: "esriGeometryEnvelope", inSR: "4326", spatialRel: "esriSpatialRelIntersects",
     };
-    const [features, totals, years] = await Promise.all([
+    const [features, totals, years, types] = await Promise.all([
       query({
         ...common, outFields: "OBJECTID,CRASHDATETIMEUTC,YEAR,INTASTREETNAME,INTBSTREETNAME,COLLISIONTYPE,FATALINJURIES,SEVEREINJURIES,MODERATEINJURIES,MINORINJURIES",
         returnGeometry: "true", outSR: "4326", resultRecordCount: String(incidentLimit),
@@ -149,6 +193,7 @@ export async function getCityIncidents(filters: IncidentFilters): Promise<MapRes
       }),
       query({ ...common, returnCountOnly: "true" }),
       getYears(),
+      getAccidentTypes(),
     ]);
     if (!Array.isArray(features.features) || count(totals.count) === null) throw new Error("City data response was malformed.");
     const incidents = features.features.map(mapCityFeature).filter((i): i is CityRecord => Boolean(i));
@@ -156,7 +201,7 @@ export async function getCityIncidents(filters: IncidentFilters): Promise<MapRes
       incidents, totalMatched: totals.count!, limit: incidentLimit,
       truncated: totals.count! > features.features.length,
       unmappedCount: features.features.length - incidents.length,
-      availableYears: years, fetchedAt: new Date().toISOString(),
+      availableYears: years, availableTypes: types, fetchedAt: new Date().toISOString(),
       sourceName: "City of San José · Crash Locations Last Five Years", sourceUrl,
     };
     if (cache.size >= maxCacheEntries) cache.delete(cache.keys().next().value!);

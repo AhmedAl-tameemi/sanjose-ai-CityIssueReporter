@@ -64,11 +64,16 @@ export const ListCityAccidentsResponse = zod.object({
 export const listCityIncidentsQueryYearDefault = `all`;
 export const listCityIncidentsQueryYearRegExp = new RegExp('^(all|20[0-9]{2})$');
 export const listCityIncidentsQuerySeverityDefault = `all`;
+export const listCityIncidentsQueryAccidentTypeDefault = `all`;
+export const listCityIncidentsQueryAccidentTypeMax = 150;
+
+
 
 export const ListCityIncidentsQueryParams = zod.object({
   "bbox": zod.coerce.string().describe('West,south,east,north in WGS84. The area must be at most four degrees wide and high.'),
   "year": zod.coerce.string().regex(listCityIncidentsQueryYearRegExp).default(listCityIncidentsQueryYearDefault),
-  "severity": zod.enum(['all', 'fatal', 'severe', 'injury', 'none']).default(listCityIncidentsQuerySeverityDefault)
+  "severity": zod.enum(['all', 'fatal', 'severe', 'injury', 'none']).default(listCityIncidentsQuerySeverityDefault),
+  "accidentType": zod.coerce.string().max(listCityIncidentsQueryAccidentTypeMax).default(listCityIncidentsQueryAccidentTypeDefault).describe('Exact City collision type, or all.')
 })
 
 export const listCityIncidentsResponseTotalMatchedMin = 0;
@@ -93,6 +98,7 @@ export const ListCityIncidentsResponse = zod.object({
   "truncated": zod.boolean(),
   "unmappedCount": zod.number().int().min(listCityIncidentsResponseUnmappedCountMin),
   "availableYears": zod.array(zod.string()),
+  "availableTypes": zod.array(zod.string()),
   "fetchedAt": zod.coerce.date(),
   "sourceName": zod.string(),
   "sourceUrl": zod.string().url()

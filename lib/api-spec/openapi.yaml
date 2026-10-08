@@ -75,6 +75,13 @@ paths:
             type: string
             enum: [all, fatal, severe, injury, none]
             default: all
+        - in: query
+          name: accidentType
+          description: Exact City collision type, or all.
+          schema:
+            type: string
+            maxLength: 150
+            default: all
       responses:
         "200":
           description: Latest mapped collisions in the selected area, with explicit record limit and City source attribution.
@@ -483,7 +490,7 @@ components:
           enum: [fatal, severe, injury, none, unknown]
     CityIncidentMap:
       type: object
-      required: [incidents, totalMatched, limit, truncated, unmappedCount, availableYears, fetchedAt, sourceName, sourceUrl]
+      required: [incidents, totalMatched, limit, truncated, unmappedCount, availableYears, availableTypes, fetchedAt, sourceName, sourceUrl]
       properties:
         incidents:
           type: array
@@ -500,6 +507,10 @@ components:
           type: integer
           minimum: 0
         availableYears:
+          type: array
+          items:
+            type: string
+        availableTypes:
           type: array
           items:
             type: string

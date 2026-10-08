@@ -17,4 +17,9 @@ bbox: string;
  */
 year?: string;
 severity?: ListCityIncidentsSeverity;
+/**
+ * Exact City collision type, or all.
+ * @maxLength 150
+ */
+accidentType?: string;
 };

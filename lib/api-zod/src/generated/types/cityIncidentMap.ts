@@ -16,6 +16,7 @@ export interface CityIncidentMap {
   /** @minimum 0 */
   unmappedCount: number;
   availableYears: string[];
+  availableTypes: string[];
   fetchedAt: Date;
   sourceName: string;
   sourceUrl: string;

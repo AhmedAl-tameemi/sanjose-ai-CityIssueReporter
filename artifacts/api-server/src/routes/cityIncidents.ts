@@ -15,6 +15,7 @@ router.get("/city-incidents", async (req, res): Promise<void> => {
       bbox: parsed.data.bbox,
       year: parsed.data.year ?? "all",
       severity: parsed.data.severity ?? "all",
+      accidentType: parsed.data.accidentType ?? "all",
     });
     res.setHeader("Cache-Control", "public, max-age=300");
     res.json(ListCityIncidentsResponse.parse(data));

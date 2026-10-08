@@ -61,6 +61,7 @@ export interface CityIncidentMap {
   /** @minimum 0 */
   unmappedCount: number;
   availableYears: string[];
+  availableTypes: string[];
   fetchedAt: string;
   sourceName: string;
   sourceUrl: string;
@@ -381,6 +382,11 @@ bbox: string;
  */
 year?: string;
 severity?: ListCityIncidentsSeverity;
+/**
+ * Exact City collision type, or all.
+ * @maxLength 150
+ */
+accidentType?: string;
 };
 
 export type ListCityIncidentsSeverity = typeof ListCityIncidentsSeverity[keyof typeof ListCityIncidentsSeverity];
