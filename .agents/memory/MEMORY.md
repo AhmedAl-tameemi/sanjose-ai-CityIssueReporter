@@ -1,5 +1,5 @@
-- [Private evidence storage](private-evidence-storage.md) — resident media stays private; recording consent is separate from attachment or AI processing.
-- [Report history access](report-history-access.md) — browser-scoped resident ownership, authenticated staff access, and a City-data-only public map.
+- [Private evidence storage](private-evidence-storage.md) — private object storage and scoped upload previews; submitted attachments are visible in the public staff archive.
+- [Report history access](report-history-access.md) — browser-scoped resident history; the staff archive is deliberately public; the accident map remains City-data-only.
 - [Public accident retention](public-accident-archive.md) — preserve saved City records during refreshes; source failures and rolling coverage must not erase stored history.
 - [Resident text translation](resident-text-translation.md) — preserve residents’ original text; use a user-supplied OpenAI secret for staff-facing English translations.
 - [Public map services](public-map-services.md) — keep the prototype keyless; public OSM/Nominatim usage needs attribution, low request volume, and an upgrade path for scale.
@@ -11,3 +11,4 @@
 - [Incident location permission](incident-location-permission.md) — device location helps select an incident location; keep it optional and one-time, not ongoing resident tracking.
 - [Spoken date interpretation](spoken-date-interpretation.md) — locales can use different calendars; don't guess an earlier year to accept a future date.
 - [Staff proxy trust](staff-proxy-trust.md) — verify ingress before trusting forwarding; preview retained spoofed X-Real-IP, and published topology is not guaranteed.
+- [OpenAPI path/query naming](openapi-path-query-naming.md) — Orval path schemas and query types can collide in the Zod barrel when an operation has both parameter kinds.

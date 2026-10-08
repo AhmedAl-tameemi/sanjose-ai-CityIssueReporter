@@ -5,14 +5,13 @@ import { and, desc, eq } from "drizzle-orm";
 import {
   CreateTrafficReportBody,
   CreateTrafficReportResponse,
+  ListTrafficReportsQueryParams,
   ListTrafficReportsResponse,
 } from "@workspace/api-zod";
 import { db, trafficReportsTable, type TrafficReportRecord } from "@workspace/db";
 import {
-  canStaffReadEvidence,
   canResidentPreviewEvidence,
   getResidentOwnerId,
-  getStaffSession,
 } from "../lib/staffAuth";
 import { generateReportAnalysis } from "../lib/reportAnalysis";
 import { ObjectNotFoundError, ObjectStorageService } from "../lib/objectStorage";
@@ -56,15 +55,21 @@ router.post("/reports/session", (req, res) => {
 
 router.get("/reports", async (req, res): Promise<void> => {
   res.setHeader("Cache-Control", "private, no-store");
+  const parsed = ListTrafficReportsQueryParams.safeParse(req.query);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Choose the resident or public staff view." });
+    return;
+  }
   try {
-    const staff = canStaffReadEvidence(getStaffSession(req));
-    const ownerId = staff ? null : getResidentOwnerId(req, res);
+    // "staff" selects the explicitly public archive; it is not an identity claim.
+    const publicStaffView = parsed.data.view === "staff";
+    const ownerId = publicStaffView ? null : getResidentOwnerId(req, res);
     const records = await db.select().from(trafficReportsTable)
       .where(ownerId ? eq(trafficReportsTable.ownerId, ownerId) : undefined)
       .orderBy(desc(trafficReportsTable.submittedAt), desc(trafficReportsTable.id));
     res.json(ListTrafficReportsResponse.parse({
       reports: records.map(publicRecord),
-      viewer: staff ? "staff" : "resident",
+      viewer: publicStaffView ? "staff" : "resident",
     }));
   } catch {
     req.log.error("Report history could not be loaded");
@@ -198,7 +203,7 @@ router.post("/reports", async (req, res): Promise<void> => {
   }
 });
 
-async function readReportEvidence(req: Request, res: Response): Promise<void> {
+async function readReportEvidence(req: Request, res: Response, publicStaffView: boolean): Promise<void> {
   res.setHeader("Cache-Control", "private, no-store");
   const raw = req.params.reportId;
   const reportId = Array.isArray(raw) ? raw[0] : raw;
@@ -207,12 +212,11 @@ async function readReportEvidence(req: Request, res: Response): Promise<void> {
     return;
   }
   try {
-    const staff = canStaffReadEvidence(getStaffSession(req));
-    const ownerId = staff ? null : getResidentOwnerId(req, res);
+    const ownerId = publicStaffView ? null : getResidentOwnerId(req, res);
     const [record] = await db.select().from(trafficReportsTable).where(and(
       eq(trafficReportsTable.id, reportId),
     ));
-    if (!record || !canReadReportEvidence(staff, record.ownerId, ownerId)) {
+    if (!record || !canReadReportEvidence(publicStaffView, record.ownerId, ownerId)) {
       res.status(404).end();
       return;
     }
@@ -243,7 +247,8 @@ async function readReportEvidence(req: Request, res: Response): Promise<void> {
   }
 }
 
-router.get("/reports/:reportId/evidence", readReportEvidence);
-router.get("/reports/:reportId/evidence/:evidenceIndex", readReportEvidence);
+router.get("/reports/:reportId/evidence", (req, res) => readReportEvidence(req, res, false));
+router.get("/reports/:reportId/evidence/:evidenceIndex", (req, res) => readReportEvidence(req, res, false));
+router.get("/staff/reports/:reportId/evidence/:evidenceIndex", (req, res) => readReportEvidence(req, res, true));
 
 export default router;

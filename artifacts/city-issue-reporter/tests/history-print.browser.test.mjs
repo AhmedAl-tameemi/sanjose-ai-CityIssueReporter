@@ -107,17 +107,20 @@ async function openHistory(viewer) {
   await page.addInitScript(() => {
     window.print = () => { window.__printCalls = (window.__printCalls || 0) + 1; };
   });
-  await page.route("**/api/reports", (route) => route.fulfill({
-    status: 200,
-    contentType: "application/json",
-    body: JSON.stringify({ viewer, reports: [fixtureReport, secondReport] }),
-  }));
-  await page.route("**/api/reports/*/evidence/*", (route) => route.fulfill({
+  await page.route(/\/api\/reports(?:\?.*)?$/, (route) => {
+    const publicView = new URL(route.request().url()).searchParams.get("view") === "staff";
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ viewer: publicView ? "staff" : "resident", reports: publicView ? [fixtureReport, secondReport] : [fixtureReport] }),
+    });
+  });
+  await page.route(/\/api\/(?:staff\/)?reports\/[^/]+\/evidence\/\d+$/, (route) => route.fulfill({
     status: 200,
     contentType: "image/png",
     body: blankPhoto,
   }));
-  await page.goto(`${baseUrl}/history`);
+  await page.goto(`${baseUrl}/history${viewer === "staff" ? "?view=staff" : ""}`);
   await page.getByTestId("card-report-fixture-main").waitFor();
   return page;
 }
@@ -127,6 +130,33 @@ test("resident history does not offer city report compilation", async () => {
   try {
     assert.equal(await page.locator('[data-testid^="button-print-report-"]').count(), 0);
     assert.equal(await page.locator(".history-print-document").count(), 0);
+  } finally {
+    await page.close();
+  }
+});
+
+test("the public staff view opens and reloads without PIN verification, then returns to scoped resident history", async () => {
+  const page = await openHistory("resident");
+  const requests = [];
+  page.on("request", (request) => requests.push(request.url()));
+  try {
+    assert.equal(await page.getByTestId("input-staff-pin").count(), 0);
+    assert.equal(await page.getByTestId("button-staff-login").count(), 0);
+    await page.getByTestId("toggle-staff-access").click();
+    await page.getByTestId("link-public-staff-view").click();
+    await page.getByTestId("card-report-fixture-other").waitFor();
+    assert.match(await page.getByTestId("text-history-privacy").innerText(), /Public access/);
+    assert.ok(requests.some((url) => url.includes("/api/reports?view=staff")));
+    const evidenceImage = page.getByTestId("card-report-fixture-main").getByTestId("history-evidence-0").locator("img");
+    assert.equal(await evidenceImage.getAttribute("src"), "/api/staff/reports/fixture-main/evidence/0");
+    await page.reload();
+    await page.getByTestId("card-report-fixture-other").waitFor();
+    assert.equal(await page.getByTestId("input-staff-pin").count(), 0);
+    await page.getByTestId("link-resident-history").click();
+    await page.getByTestId("card-report-fixture-main").waitFor();
+    assert.equal(await page.getByTestId("card-report-fixture-other").count(), 0);
+    assert.equal(await page.locator('[data-testid^="button-print-report-"]').count(), 0);
+    assert.equal(requests.some((url) => /\/api\/staff\/(login|session|logout)/.test(url)), false);
   } finally {
     await page.close();
   }
@@ -147,7 +177,7 @@ test("staff printout compiles only the selected report and labels sources correc
     for (const expected of [
       "TS-TEST-001", "Test intersection", "Test street address", "2026-10-07", "8:30 AM",
       "37.338200, -121.886300", "Test Resident", "resident@example.invalid", "Not provided",
-      "test-photo.png", "A translated test statement.", "unverified suggestion", "CONFIDENTIAL",
+      "test-photo.png", "A translated test statement.", "unverified suggestion", "PUBLIC CITY STAFF VIEW",
     ]) assert.ok(text.includes(expected), `Missing report detail: ${expected}`);
     assert.equal(text.includes("TS-TEST-002"), false);
     assert.equal(await document.getAttribute("lang"), "en");

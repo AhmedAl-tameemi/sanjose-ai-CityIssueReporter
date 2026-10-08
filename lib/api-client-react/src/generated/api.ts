@@ -27,10 +27,9 @@ import type {
   HealthStatus,
   ListCityAccidentsParams,
   ListCityIncidentsParams,
+  ListTrafficReportsParams,
   ReportTranslationInput,
   ReportTranslationResponse,
-  StaffLoginInput,
-  StaffSession,
   TrafficReport,
   TrafficReportHistory,
   TrafficReportInput
@@ -565,108 +564,28 @@ export const useTranslateReport = <TError = ErrorType<ErrorEnvelope>,
       return useMutation(getTranslateReportMutationOptions(options));
     }
 
-export const getStaffLoginUrl = () => {
+export const getListTrafficReportsUrl = (params?: ListTrafficReportsParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
 
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/staff/login`
+  return stringifiedParams.length > 0 ? `/api/reports?${stringifiedParams}` : `/api/reports`
 }
 
 /**
- * @summary Authenticate a City staff member
+ * The resident view returns only reports tied to the current browser session. The staff view is public and returns all submitted report details without sign-in.
+ * @summary List resident history or the public City staff archive
  */
-export const staffLogin = async (staffLoginInput: StaffLoginInput, options?: Parameters<typeof customFetch>[1]): Promise<StaffSession> => {
+export const listTrafficReports = async (params?: ListTrafficReportsParams, options?: Parameters<typeof customFetch>[1]): Promise<TrafficReportHistory> => {
 
-    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-return customFetch<StaffSession>(getStaffLoginUrl(),
-  {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
-    body: JSON.stringify(staffLoginInput)
-  }
-);}
-
-
-
-
-
-export const getStaffLoginMutationKey = () => ['staffLogin'] as const;
-
-export const getStaffLoginMutationOptions = <TError = ErrorType<ErrorEnvelope>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof staffLogin>>, TError,StaffLoginMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof staffLogin>>, TError,StaffLoginMutationVariables, TContext> => {
-
-const mutationKey = getStaffLoginMutationKey();
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof staffLogin>>, StaffLoginMutationVariables> = (props) => {
-          const {data} = props ?? {};
-
-          return  staffLogin(data,requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type StaffLoginMutationResult = NonNullable<Awaited<ReturnType<typeof staffLogin>>>
-    export type StaffLoginMutationBody = BodyType<StaffLoginInput>
-    export type StaffLoginMutationError = ErrorType<ErrorEnvelope>
-    export type StaffLoginMutationVariables = {data: BodyType<StaffLoginInput>}
-
-    /**
- * @summary Authenticate a City staff member
- */
-export const useStaffLogin = <TError = ErrorType<ErrorEnvelope>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof staffLogin>>, TError,StaffLoginMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof staffLogin>>,
-        TError,
-        StaffLoginMutationVariables,
-        TContext
-      > => {
-      return useMutation(getStaffLoginMutationOptions(options));
-    }
-
-export const getGetStaffSessionUrl = () => {
-
-
-
-
-  return `/api/staff/session`
-}
-
-/**
- * @summary Get the current City staff session
- */
-export const getStaffSession = async ( options?: Parameters<typeof customFetch>[1]): Promise<StaffSession> => {
-
-  return customFetch<StaffSession>(getGetStaffSessionUrl(),
+  return customFetch<TrafficReportHistory>(getListTrafficReportsUrl(params),
   {
     ...options,
     method: 'GET'
@@ -679,175 +598,23 @@ export const getStaffSession = async ( options?: Parameters<typeof customFetch>[
 
 
 
-export const getGetStaffSessionQueryKey = () => {
+export const getListTrafficReportsQueryKey = (params?: ListTrafficReportsParams,) => {
     return [
-    `/api/staff/session`
+    `/api/reports`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getGetStaffSessionQueryOptions = <TData = Awaited<ReturnType<typeof getStaffSession>>, TError = ErrorType<ErrorEnvelope>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStaffSession>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getListTrafficReportsQueryOptions = <TData = Awaited<ReturnType<typeof listTrafficReports>>, TError = ErrorType<void>>(params?: ListTrafficReportsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listTrafficReports>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetStaffSessionQueryKey();
+  const queryKey =  queryOptions?.queryKey ?? getListTrafficReportsQueryKey(params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getStaffSession>>> = ({ signal }) => getStaffSession({ signal, ...requestOptions });
-
-
-
-
-
-   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getStaffSession>>, TError, TData> & { queryKey: QueryKey }
-}
-
-export type GetStaffSessionQueryResult = NonNullable<Awaited<ReturnType<typeof getStaffSession>>>
-export type GetStaffSessionQueryError = ErrorType<ErrorEnvelope>
-
-
-/**
- * @summary Get the current City staff session
- */
-
-export function useGetStaffSession<TData = Awaited<ReturnType<typeof getStaffSession>>, TError = ErrorType<ErrorEnvelope>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStaffSession>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-
- ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-
-  const queryOptions = getGetStaffSessionQueryOptions(options)
-
-  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
-
-  return withQueryKey(query, queryOptions.queryKey);
-}
-
-
-
-
-
-
-
-export const getStaffLogoutUrl = () => {
-
-
-
-
-  return `/api/staff/logout`
-}
-
-/**
- * @summary End the current City staff session
- */
-export const staffLogout = async ( options?: Parameters<typeof customFetch>[1]): Promise<void> => {
-
-  return customFetch<void>(getStaffLogoutUrl(),
-  {
-    ...options,
-    method: 'POST'
-
-
-  }
-);}
-
-
-
-
-
-export const getStaffLogoutMutationKey = () => ['staffLogout'] as const;
-
-export const getStaffLogoutMutationOptions = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof staffLogout>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof staffLogout>>, TError,void, TContext> => {
-
-const mutationKey = getStaffLogoutMutationKey();
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
-
-
-
-
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof staffLogout>>, void> = () => {
-
-
-          return  staffLogout(requestOptions)
-        }
-
-
-
-
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type StaffLogoutMutationResult = NonNullable<Awaited<ReturnType<typeof staffLogout>>>
-
-    export type StaffLogoutMutationError = ErrorType<unknown>
-
-
-    /**
- * @summary End the current City staff session
- */
-export const useStaffLogout = <TError = ErrorType<unknown>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof staffLogout>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
- ): UseMutationResult<
-        Awaited<ReturnType<typeof staffLogout>>,
-        TError,
-        void,
-        TContext
-      > => {
-      return useMutation(getStaffLogoutMutationOptions(options));
-    }
-
-export const getListTrafficReportsUrl = () => {
-
-
-
-
-  return `/api/reports`
-}
-
-/**
- * Residents receive only reports tied to their private browser session; authenticated staff receive all reports.
- * @summary List reports available to the current resident or staff member
- */
-export const listTrafficReports = async ( options?: Parameters<typeof customFetch>[1]): Promise<TrafficReportHistory> => {
-
-  return customFetch<TrafficReportHistory>(getListTrafficReportsUrl(),
-  {
-    ...options,
-    method: 'GET'
-
-
-  }
-);}
-
-
-
-
-
-export const getListTrafficReportsQueryKey = () => {
-    return [
-    `/api/reports`
-    ] as const;
-    }
-
-
-export const getListTrafficReportsQueryOptions = <TData = Awaited<ReturnType<typeof listTrafficReports>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listTrafficReports>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
-) => {
-
-const {query: queryOptions, request: requestOptions} = options ?? {};
-
-  const queryKey =  queryOptions?.queryKey ?? getListTrafficReportsQueryKey();
-
-
-
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listTrafficReports>>> = ({ signal }) => listTrafficReports({ signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listTrafficReports>>> = ({ signal }) => listTrafficReports(params, { signal, ...requestOptions });
 
 
 
@@ -857,19 +624,19 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type ListTrafficReportsQueryResult = NonNullable<Awaited<ReturnType<typeof listTrafficReports>>>
-export type ListTrafficReportsQueryError = ErrorType<unknown>
+export type ListTrafficReportsQueryError = ErrorType<void>
 
 
 /**
- * @summary List reports available to the current resident or staff member
+ * @summary List resident history or the public City staff archive
  */
 
-export function useListTrafficReports<TData = Awaited<ReturnType<typeof listTrafficReports>>, TError = ErrorType<unknown>>(
-  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listTrafficReports>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export function useListTrafficReports<TData = Awaited<ReturnType<typeof listTrafficReports>>, TError = ErrorType<void>>(
+ params?: ListTrafficReportsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listTrafficReports>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getListTrafficReportsQueryOptions(options)
+  const queryOptions = getListTrafficReportsQueryOptions(params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -1192,6 +959,89 @@ export function useReadTrafficReportEvidenceItem<TData = Awaited<ReturnType<type
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getReadTrafficReportEvidenceItemQueryOptions(reportId,evidenceIndex,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getReadPublicStaffReportEvidenceUrl = (reportId: string,
+    evidenceIndex: number,) => {
+
+
+
+
+  return `/api/staff/reports/${reportId}/evidence/${evidenceIndex}`
+}
+
+/**
+ * No PIN, staff session, or resident ownership is required. Only evidence attached to a saved report can be read through this route.
+ * @summary Read submitted report evidence in the public City staff view
+ */
+export const readPublicStaffReportEvidence = async (reportId: string,
+    evidenceIndex: number, options?: Parameters<typeof customFetch>[1]): Promise<Blob> => {
+
+  return customFetch<Blob>(getReadPublicStaffReportEvidenceUrl(reportId,evidenceIndex),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getReadPublicStaffReportEvidenceQueryKey = (reportId: string,
+    evidenceIndex: number,) => {
+    return [
+    `/api/staff/reports/${reportId}/evidence/${evidenceIndex}`
+    ] as const;
+    }
+
+
+export const getReadPublicStaffReportEvidenceQueryOptions = <TData = Awaited<ReturnType<typeof readPublicStaffReportEvidence>>, TError = ErrorType<void>>(reportId: string,
+    evidenceIndex: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof readPublicStaffReportEvidence>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getReadPublicStaffReportEvidenceQueryKey(reportId,evidenceIndex);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof readPublicStaffReportEvidence>>> = ({ signal }) => readPublicStaffReportEvidence(reportId,evidenceIndex, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: reportId !== null && reportId !== undefined && evidenceIndex !== null && evidenceIndex !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof readPublicStaffReportEvidence>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ReadPublicStaffReportEvidenceQueryResult = NonNullable<Awaited<ReturnType<typeof readPublicStaffReportEvidence>>>
+export type ReadPublicStaffReportEvidenceQueryError = ErrorType<void>
+
+
+/**
+ * @summary Read submitted report evidence in the public City staff view
+ */
+
+export function useReadPublicStaffReportEvidence<TData = Awaited<ReturnType<typeof readPublicStaffReportEvidence>>, TError = ErrorType<void>>(
+ reportId: string,
+    evidenceIndex: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof readPublicStaffReportEvidence>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getReadPublicStaffReportEvidenceQueryOptions(reportId,evidenceIndex,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

@@ -10,5 +10,6 @@ import type { TrafficReportHistoryViewer } from './trafficReportHistoryViewer';
 
 export interface TrafficReportHistory {
   reports: TrafficReport[];
+  /** Display mode, not an authenticated staff identity. */
   viewer: TrafficReportHistoryViewer;
 }

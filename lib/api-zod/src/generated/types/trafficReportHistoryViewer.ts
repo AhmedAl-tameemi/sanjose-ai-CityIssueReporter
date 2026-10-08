@@ -6,6 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
+/**
+ * Display mode, not an authenticated staff identity.
+ */
 export type TrafficReportHistoryViewer = typeof TrafficReportHistoryViewer[keyof typeof TrafficReportHistoryViewer];
 
 

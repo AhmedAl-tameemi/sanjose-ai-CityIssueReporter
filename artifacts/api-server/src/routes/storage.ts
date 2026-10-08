@@ -9,9 +9,7 @@ import { UploadEvidenceResponse } from "@workspace/api-zod";
 import { Readable } from "node:stream";
 import {
   canResidentPreviewEvidence,
-  canStaffReadEvidence,
   createResidentEvidencePreviewToken,
-  getStaffSession,
 } from "../lib/staffAuth";
 import {
   ObjectNotFoundError,
@@ -99,10 +97,9 @@ router.get(
     const raw = req.params.objectPath;
     const objectPath = `/objects/${Array.isArray(raw) ? raw.join("/") : raw}`;
 
-    const staffSession = getStaffSession(req);
-    if (!canStaffReadEvidence(staffSession) && !canResidentPreviewEvidence(req, objectPath)) {
+    if (!canResidentPreviewEvidence(req, objectPath)) {
       res.status(401).json({
-        error: "Staff authentication or a resident preview token is required.",
+        error: "A resident preview token is required.",
       });
       return;
     }

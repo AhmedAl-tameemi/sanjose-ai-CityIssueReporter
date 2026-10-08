@@ -170,42 +170,15 @@ export const TranslateReportResponse = zod.object({
 
 
 /**
- * @summary Authenticate a City staff member
+ * The resident view returns only reports tied to the current browser session. The staff view is public and returns all submitted report details without sign-in.
+ * @summary List resident history or the public City staff archive
  */
-export const staffLoginBodyPinRegExp = new RegExp('^[0-9]{4}$');
+export const listTrafficReportsQueryViewDefault = `resident`;
 
-
-export const StaffLoginBody = zod.object({
-  "pin": zod.string().regex(staffLoginBodyPinRegExp)
+export const ListTrafficReportsQueryParams = zod.object({
+  "view": zod.enum(['resident', 'staff']).default(listTrafficReportsQueryViewDefault)
 })
 
-export const StaffLoginResponse = zod.object({
-  "authenticated": zod.boolean(),
-  "staffId": zod.string(),
-  "role": zod.enum(['city-evidence-reviewer', 'city-admin'])
-})
-
-
-/**
- * @summary Get the current City staff session
- */
-export const GetStaffSessionResponse = zod.object({
-  "authenticated": zod.boolean(),
-  "staffId": zod.string(),
-  "role": zod.enum(['city-evidence-reviewer', 'city-admin'])
-})
-
-
-/**
- * @summary End the current City staff session
- */
-export const StaffLogoutResponse = zod.void()
-
-
-/**
- * Residents receive only reports tied to their private browser session; authenticated staff receive all reports.
- * @summary List reports available to the current resident or staff member
- */
 export const listTrafficReportsResponseReportsItemOriginalReportLocationMax = 300;
 
 export const listTrafficReportsResponseReportsItemOriginalReportSearchedAddressMax = 300;
@@ -275,7 +248,7 @@ export const ListTrafficReportsResponse = zod.object({
   "description": zod.string()
 }),zod.null()])
 })),
-  "viewer": zod.enum(['resident', 'staff'])
+  "viewer": zod.enum(['resident', 'staff']).describe('Display mode, not an authenticated staff identity.')
 })
 
 
@@ -462,5 +435,21 @@ export const ReadTrafficReportEvidenceItemParams = zod.object({
 })
 
 export const ReadTrafficReportEvidenceItemResponse = zod.unknown()
+
+
+/**
+ * No PIN, staff session, or resident ownership is required. Only evidence attached to a saved report can be read through this route.
+ * @summary Read submitted report evidence in the public City staff view
+ */
+export const readPublicStaffReportEvidencePathEvidenceIndexMin = 0;
+
+
+
+export const ReadPublicStaffReportEvidenceParams = zod.object({
+  "reportId": zod.coerce.string().uuid(),
+  "evidenceIndex": zod.coerce.number().int().min(readPublicStaffReportEvidencePathEvidenceIndexMin)
+})
+
+export const ReadPublicStaffReportEvidenceResponse = zod.unknown()
 
 

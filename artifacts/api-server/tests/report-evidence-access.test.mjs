@@ -31,7 +31,7 @@ function attachment(objectPath, previewToken, size = 10, type = "image/png") {
   };
 }
 
-test("report evidence access denies another resident and allows only its owner or staff", () => {
+test("resident evidence stays owner-scoped while the explicitly public staff view allows readers without a session", () => {
   assert.equal(canReadReportEvidence(false, ownerA, ownerA), true);
   assert.equal(canReadReportEvidence(false, ownerA, ownerB), false);
   assert.equal(canReadReportEvidence(false, ownerA, null), false);

@@ -267,84 +267,19 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorEnvelope"
-  /staff/login:
-    post:
-      operationId: staffLogin
-      tags: [Staff]
-      summary: Authenticate a City staff member
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/StaffLoginInput"
-      responses:
-        "200":
-          description: Staff session created.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/StaffSession"
-        "400":
-          description: Credentials are missing.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorEnvelope"
-        "401":
-          description: Credentials are invalid.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorEnvelope"
-        "429":
-          description: Too many failed PIN attempts. Retry after the cooldown.
-          headers:
-            Retry-After:
-              schema:
-                type: integer
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorEnvelope"
-        "503":
-          description: Staff access has not been configured.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorEnvelope"
-  /staff/session:
-    get:
-      operationId: getStaffSession
-      tags: [Staff]
-      summary: Get the current City staff session
-      responses:
-        "200":
-          description: Current staff session.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/StaffSession"
-        "401":
-          description: No valid staff session.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorEnvelope"
-  /staff/logout:
-    post:
-      operationId: staffLogout
-      tags: [Staff]
-      summary: End the current City staff session
-      responses:
-        "204":
-          description: Staff session cleared.
   /reports:
     get:
       operationId: listTrafficReports
       tags: [Reports]
-      summary: List reports available to the current resident or staff member
-      description: Residents receive only reports tied to their private browser session; authenticated staff receive all reports.
+      summary: List resident history or the public City staff archive
+      description: The resident view returns only reports tied to the current browser session. The staff view is public and returns all submitted report details without sign-in.
+      parameters:
+        - in: query
+          name: view
+          schema:
+            type: string
+            enum: [resident, staff]
+            default: resident
       responses:
         "200":
           description: Reports newest first.
@@ -352,6 +287,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/TrafficReportHistory"
+        "400":
+          description: Invalid report view.
     post:
       operationId: createTrafficReport
       tags: [Reports]
@@ -404,7 +341,7 @@ paths:
             format: uuid
       responses:
         "200":
-          description: Private evidence for its submitting resident or authenticated staff.
+          description: Evidence for its submitting resident.
           content:
             application/octet-stream:
               schema:
@@ -432,7 +369,7 @@ paths:
             minimum: 0
       responses:
         "200":
-          description: Private evidence for its submitting resident or authenticated staff.
+          description: Evidence for its submitting resident.
           content:
             application/octet-stream:
               schema:
@@ -440,6 +377,35 @@ paths:
                 format: binary
         "404":
           description: Report or evidence not available to this viewer.
+  /staff/reports/{reportId}/evidence/{evidenceIndex}:
+    get:
+      operationId: readPublicStaffReportEvidence
+      tags: [Reports]
+      summary: Read submitted report evidence in the public City staff view
+      description: No PIN, staff session, or resident ownership is required. Only evidence attached to a saved report can be read through this route.
+      parameters:
+        - in: path
+          name: reportId
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: path
+          name: evidenceIndex
+          required: true
+          schema:
+            type: integer
+            minimum: 0
+      responses:
+        "200":
+          description: Publicly readable submitted evidence.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Report or evidence not found.
 components:
   schemas:
     CityAccidentList:
@@ -547,30 +513,6 @@ components:
         - contentType
         - size
         - previewToken
-    StaffLoginInput:
-      type: object
-      properties:
-        pin:
-          type: string
-          pattern: '^[0-9]{4}$'
-      required:
-        - pin
-    StaffSession:
-      type: object
-      properties:
-        authenticated:
-          type: boolean
-        staffId:
-          type: string
-        role:
-          type: string
-          enum:
-            - city-evidence-reviewer
-            - city-admin
-      required:
-        - authenticated
-        - staffId
-        - role
     ReportTranslationInput:
       type: object
       properties:
@@ -784,6 +726,7 @@ components:
             $ref: "#/components/schemas/TrafficReport"
         viewer:
           type: string
+          description: Display mode, not an authenticated staff identity.
           enum: [resident, staff]
       required: [reports, viewer]
     ErrorEnvelope:

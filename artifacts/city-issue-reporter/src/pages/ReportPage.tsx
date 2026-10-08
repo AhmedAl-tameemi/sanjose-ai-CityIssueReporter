@@ -452,6 +452,7 @@ export default function ReportPage() {
                       <div className="review-row"><span className="review-key">{t('reviewDetails')}</span><span className="review-value" dir="auto">{draft.description}</span></div>
                       {Boolean(draft.evidence?.length) && <div className="review-row"><span className="review-key">{t('evidenceLabel')}</span><span className="review-value">{draft.evidence?.map((item) => item.name).join(', ')}</span></div>}
                     </div>
+                    <p className="review-box" role="note" data-testid="text-public-submission-notice">{t('privacyHint')}</p>
                   </div>
                 </div>
               )}

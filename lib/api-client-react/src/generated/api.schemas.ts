@@ -80,25 +80,6 @@ export interface EvidenceUploadResponse {
   previewToken: string;
 }
 
-export interface StaffLoginInput {
-  /** @pattern ^[0-9]{4}$ */
-  pin: string;
-}
-
-export type StaffSessionRole = typeof StaffSessionRole[keyof typeof StaffSessionRole];
-
-
-export const StaffSessionRole = {
-  'city-evidence-reviewer': 'city-evidence-reviewer',
-  'city-admin': 'city-admin',
-} as const;
-
-export interface StaffSession {
-  authenticated: boolean;
-  staffId: string;
-  role: StaffSessionRole;
-}
-
 export interface ReportTranslationInput {
   /**
      * @minLength 2
@@ -316,6 +297,9 @@ export interface TrafficReport {
   englishTranslation: ReportTranslationResponse | null;
 }
 
+/**
+ * Display mode, not an authenticated staff identity.
+ */
 export type TrafficReportHistoryViewer = typeof TrafficReportHistoryViewer[keyof typeof TrafficReportHistoryViewer];
 
 
@@ -326,6 +310,7 @@ export const TrafficReportHistoryViewer = {
 
 export interface TrafficReportHistory {
   reports: TrafficReport[];
+  /** Display mode, not an authenticated staff identity. */
   viewer: TrafficReportHistoryViewer;
 }
 
@@ -398,5 +383,17 @@ export const ListCityIncidentsSeverity = {
   severe: 'severe',
   injury: 'injury',
   none: 'none',
+} as const;
+
+export type ListTrafficReportsParams = {
+view?: ListTrafficReportsView;
+};
+
+export type ListTrafficReportsView = typeof ListTrafficReportsView[keyof typeof ListTrafficReportsView];
+
+
+export const ListTrafficReportsView = {
+  resident: 'resident',
+  staff: 'staff',
 } as const;
 
