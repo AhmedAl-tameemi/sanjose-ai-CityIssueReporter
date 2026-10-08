@@ -10,6 +10,6 @@ import type { TrafficReportHistoryViewer } from './trafficReportHistoryViewer';
 
 export interface TrafficReportHistory {
   reports: TrafficReport[];
-  /** Resident owner-scoped mode or authenticated shared staff mode. */
+  /** Resident owner-scoped mode or public staff mode containing all submitted reports. */
   viewer: TrafficReportHistoryViewer;
 }

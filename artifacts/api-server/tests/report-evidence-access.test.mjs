@@ -31,7 +31,7 @@ function attachment(objectPath, previewToken, size = 10, type = "image/png") {
   };
 }
 
-test("report evidence is available only to its resident owner or authenticated staff", () => {
+test("saved evidence uses the public staff route or its resident owner's route", () => {
   assert.equal(canReadReportEvidence(false, ownerA, ownerA), true);
   assert.equal(canReadReportEvidence(false, ownerA, ownerB), false);
   assert.equal(canReadReportEvidence(false, ownerA, null), false);

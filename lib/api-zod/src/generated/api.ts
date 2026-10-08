@@ -170,8 +170,8 @@ export const TranslateReportResponse = zod.object({
 
 
 /**
- * The resident view returns only reports tied to the current browser session. Requesting the staff view requires a valid shared-PIN staff session and returns all submissions.
- * @summary List resident history or PIN-protected City staff reports
+ * The resident view returns only reports tied to the current browser session. The public staff view returns all submissions, including contact details and submitted evidence metadata, without sign-in.
+ * @summary List resident history or public City staff reports
  */
 export const listTrafficReportsQueryViewDefault = `resident`;
 
@@ -248,7 +248,7 @@ export const ListTrafficReportsResponse = zod.object({
   "description": zod.string()
 }),zod.null()])
 })),
-  "viewer": zod.enum(['resident', 'staff']).describe('Resident owner-scoped mode or authenticated shared staff mode.')
+  "viewer": zod.enum(['resident', 'staff']).describe('Resident owner-scoped mode or public staff mode containing all submitted reports.')
 })
 
 
@@ -438,8 +438,8 @@ export const ReadTrafficReportEvidenceItemResponse = zod.unknown()
 
 
 /**
- * A valid staff session is required. Only evidence attached to a saved report can be read through this route.
- * @summary Read submitted report evidence after staff PIN sign-in
+ * No sign-in is required. Only evidence attached to a saved report can be read through this route; raw storage paths and unsubmitted uploads remain private.
+ * @summary Read evidence from a publicly available submitted report
  */
 export const readStaffReportEvidencePathEvidenceIndexMin = 0;
 
@@ -451,42 +451,5 @@ export const ReadStaffReportEvidenceParams = zod.object({
 })
 
 export const ReadStaffReportEvidenceResponse = zod.unknown()
-
-
-/**
- * @summary Sign in using the shared four-digit City staff PIN
- */
-export const staffLoginBodyPinMin = 4;
-export const staffLoginBodyPinMax = 4;
-
-
-export const staffLoginBodyPinRegExp = new RegExp('^[0-9]{4}$');
-
-
-export const StaffLoginBody = zod.object({
-  "pin": zod.string().min(staffLoginBodyPinMin).max(staffLoginBodyPinMax).regex(staffLoginBodyPinRegExp)
-})
-
-export const StaffLoginResponse = zod.object({
-  "authenticated": zod.boolean(),
-  "staffId": zod.string().optional().describe('Shared City officials identity, not an individual person.'),
-  "role": zod.enum(['city-evidence-reviewer', 'city-admin']).optional()
-})
-
-
-/**
- * @summary Check shared City staff sign-in
- */
-export const GetStaffSessionResponse = zod.object({
-  "authenticated": zod.boolean(),
-  "staffId": zod.string().optional().describe('Shared City officials identity, not an individual person.'),
-  "role": zod.enum(['city-evidence-reviewer', 'city-admin']).optional()
-})
-
-
-/**
- * @summary Clear the current browser's staff session
- */
-export const StaffLogoutResponse = zod.void()
 
 

@@ -7,7 +7,7 @@
  */
 
 /**
- * Resident owner-scoped mode or authenticated shared staff mode.
+ * Resident owner-scoped mode or public staff mode containing all submitted reports.
  */
 export type TrafficReportHistoryViewer = typeof TrafficReportHistoryViewer[keyof typeof TrafficReportHistoryViewer];
 

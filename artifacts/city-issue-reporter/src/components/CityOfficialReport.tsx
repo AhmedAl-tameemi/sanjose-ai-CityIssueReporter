@@ -47,7 +47,7 @@ export default function CityOfficialReport({
         <p className="city-report-brand">TrafficSignal · City staff report</p>
         <h1>Resident-Submitted Incident Report</h1>
         <p className="city-report-confidential">
-          CONFIDENTIAL — City staff review only. Keep resident information private.
+          PUBLIC COPY — Submitted resident report available in the public City staff view.
         </p>
       </header>
 
@@ -106,7 +106,7 @@ export default function CityOfficialReport({
               ))}
             </ul>
             <p className="city-report-note">
-              Evidence files are not embedded in this printout. Review them in the PIN-protected City staff view.
+              Evidence files are not embedded in this printout. Review them in the public City staff view.
             </p>
           </>
         ) : (
@@ -140,7 +140,7 @@ export default function CityOfficialReport({
           Prepared from information submitted by a resident through TrafficSignal. Resident observations have not
           been independently verified. Confirm details before taking action; this report is not an emergency dispatch record.
         </p>
-        <p>Printout generated {formatDateTime(generatedAt)} · Handle as confidential City information.</p>
+        <p>Printout generated {formatDateTime(generatedAt)} · Public resident-submitted information.</p>
       </footer>
     </article>
   );

@@ -11,9 +11,7 @@ import {
 import { db, trafficReportsTable, type TrafficReportRecord } from "@workspace/db";
 import {
   canResidentPreviewEvidence,
-  canStaffReadEvidence,
   getResidentOwnerId,
-  getStaffSession,
 } from "../lib/staffAuth";
 import { generateReportAnalysis } from "../lib/reportAnalysis";
 import { ObjectNotFoundError, ObjectStorageService } from "../lib/objectStorage";
@@ -64,10 +62,6 @@ router.get("/reports", async (req, res): Promise<void> => {
   }
   try {
     const staffView = parsed.data.view === "staff";
-    if (staffView && !canStaffReadEvidence(getStaffSession(req))) {
-      res.status(401).json({ error: "Enter the shared City staff PIN to access these reports." });
-      return;
-    }
     const ownerId = staffView ? null : getResidentOwnerId(req, res);
     const records = await db.select().from(trafficReportsTable)
       .where(ownerId ? eq(trafficReportsTable.ownerId, ownerId) : undefined)
@@ -210,10 +204,6 @@ router.post("/reports", async (req, res): Promise<void> => {
 
 async function readReportEvidence(req: Request, res: Response, staffView: boolean): Promise<void> {
   res.setHeader("Cache-Control", "private, no-store");
-  if (staffView && !canStaffReadEvidence(getStaffSession(req))) {
-    res.status(401).json({ error: "Staff PIN sign-in is required to view this attachment." });
-    return;
-  }
   const raw = req.params.reportId;
   const reportId = Array.isArray(raw) ? raw[0] : raw;
   if (!reportId || !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(reportId)) {

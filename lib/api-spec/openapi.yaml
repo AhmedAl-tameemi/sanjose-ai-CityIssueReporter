@@ -271,8 +271,8 @@ paths:
     get:
       operationId: listTrafficReports
       tags: [Reports]
-      summary: List resident history or PIN-protected City staff reports
-      description: The resident view returns only reports tied to the current browser session. Requesting the staff view requires a valid shared-PIN staff session and returns all submissions.
+      summary: List resident history or public City staff reports
+      description: The resident view returns only reports tied to the current browser session. The public staff view returns all submissions, including contact details and submitted evidence metadata, without sign-in.
       parameters:
         - in: query
           name: view
@@ -289,12 +289,6 @@ paths:
                 $ref: "#/components/schemas/TrafficReportHistory"
         "400":
           description: Invalid report view.
-        "401":
-          description: Staff view requires PIN sign-in.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorEnvelope"
     post:
       operationId: createTrafficReport
       tags: [Reports]
@@ -387,8 +381,8 @@ paths:
     get:
       operationId: readStaffReportEvidence
       tags: [Reports]
-      summary: Read submitted report evidence after staff PIN sign-in
-      description: A valid staff session is required. Only evidence attached to a saved report can be read through this route.
+      summary: Read evidence from a publicly available submitted report
+      description: No sign-in is required. Only evidence attached to a saved report can be read through this route; raw storage paths and unsubmitted uploads remain private.
       parameters:
         - in: path
           name: reportId
@@ -404,7 +398,7 @@ paths:
             minimum: 0
       responses:
         "200":
-          description: Evidence readable by authenticated staff.
+          description: Submitted evidence readable in the public staff view.
           content:
             application/octet-stream:
               schema:
@@ -412,99 +406,8 @@ paths:
                 format: binary
         "404":
           description: Report or evidence not found.
-        "401":
-          description: Staff PIN sign-in is required.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorEnvelope"
-  /staff/login:
-    post:
-      operationId: staffLogin
-      tags: [Staff]
-      summary: Sign in using the shared four-digit City staff PIN
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/StaffLoginInput"
-      responses:
-        "200":
-          description: Shared staff session established.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/StaffSession"
-        "400":
-          description: Enter exactly four digits.
-        "401":
-          description: Invalid PIN.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorEnvelope"
-        "429":
-          description: Too many attempts; wait before retrying.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorEnvelope"
-        "503":
-          description: Staff PIN configuration or login protection is unavailable.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorEnvelope"
-  /staff/session:
-    get:
-      operationId: getStaffSession
-      tags: [Staff]
-      summary: Check shared City staff sign-in
-      responses:
-        "200":
-          description: Current authentication state.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/StaffSession"
-        "401":
-          description: No valid staff session.
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorEnvelope"
-  /staff/logout:
-    post:
-      operationId: staffLogout
-      tags: [Staff]
-      summary: Clear the current browser's staff session
-      responses:
-        "204":
-          description: Signed out.
 components:
   schemas:
-    StaffLoginInput:
-      type: object
-      required: [pin]
-      properties:
-        pin:
-          type: string
-          pattern: "^[0-9]{4}$"
-          minLength: 4
-          maxLength: 4
-    StaffSession:
-      type: object
-      required: [authenticated]
-      properties:
-        authenticated:
-          type: boolean
-        staffId:
-          type: string
-          description: Shared City officials identity, not an individual person.
-        role:
-          type: string
-          enum: [city-evidence-reviewer, city-admin]
     CityAccidentList:
       type: object
       required: [incidents, total, page, pageSize, accidentTypes, availableYears, lastSyncedAt, syncStatus, skippedCount, sourceUrl]
@@ -824,7 +727,7 @@ components:
             $ref: "#/components/schemas/TrafficReport"
         viewer:
           type: string
-          description: Resident owner-scoped mode or authenticated shared staff mode.
+          description: Resident owner-scoped mode or public staff mode containing all submitted reports.
           enum: [resident, staff]
       required: [reports, viewer]
     ErrorEnvelope:
