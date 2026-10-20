@@ -1,26 +1,25 @@
-# sanjose-ai-CityIssueReporter
-AI-powered street safety reporting prototype for San José residents
-
 # Street Safety AI: Making Neighborhood Reporting Easier
 
 **Client:** City of San José (course consulting project)  
 **Team:** Team 1, Aug–Oct 2026
 
-**My part:** I worked on the City Issue Reporter prototype, including improving the location reporting feature, testing the emergency safety warning, and building a saved reports database in my individual Replit version.
+**My part:** I helped develop and improve our City Issue Reporter prototype, focusing on location accuracy, emergency safety features, database functionality, and testing the system for potential issues.
 
 ## The problem
 
-Residents in San José deal with speeding and unsafe driving in their neighborhoods, but reporting these issues can be confusing and frustrating. City staff also need clear information about where and when these problems happen so they can better understand and evaluate the reports.
+Residents in San José deal with speeding and unsafe driving in their neighborhoods, but reporting these problems can sometimes be confusing or frustrating. City staff also need clear information about where and when these issues happen so they can better understand the problem and decide what actions to take.
 
 ## What we built
 
-- Developed a City Issue Reporter prototype that allows residents to report speeding, unsafe driving, potholes, and other street-related problems using a simple form with multiple language options.
-- Added location reporting with an interactive map, address search, and draggable pin to help residents identify exactly where an issue happened.
-- Implemented an emergency safety warning that recognizes potentially dangerous situations and directs residents to call 911 when immediate assistance is needed. The resident can still continue with the regular report.
-- Added persistent database storage in my individual version so submitted reports can be saved and viewed later, including the original description, structured report information, and submission timestamp.
+- **AI-assisted reporting:** Created a reporting tool that allows residents to report speeding, unsafe driving, potholes, and other street-related problems through a simple process.
+- **Multilingual support:** Added multiple language options so residents who are more comfortable using another language can submit reports.
+- **Interactive location reporting:** Residents can search for an address and adjust a pin on the map to identify the exact location of an issue.
+- **Emergency safety detection:** The system recognizes descriptions that may involve immediate danger and displays a warning directing residents to call 911 when emergency assistance is needed.
+- **Database:** Built a database that stores submitted reports, including the resident's description, issue type, location, date, time, and other important details. This allows reports to be saved and accessed later.
+- **Report tracking:** Generates a report number after submission so residents have a reference for their report.
 
-Residents review and submit their own reports. City staff would still be responsible for evaluating the reports and deciding what action to take.
+Residents review and submit their reports, while City staff remain responsible for reviewing the information and deciding what actions should be taken.
 
 ## What I would do next
 
-I would build an AI street-safety analysis feature that identifies repeated speeding complaints in the same area and shows patterns on a map. This could help City staff identify problem locations and the times when speeding is most commonly reported.
+I would add an AI feature that identifies repeated speeding complaints in the same neighborhood and highlights possible problem areas on a map. This could help City staff recognize patterns, understand when speeding happens most often, and make better decisions about where to focus their attention.
